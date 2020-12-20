@@ -1,9 +1,6 @@
-function varargout = parse_directory_for_dicom(dirname);
+function varargout = parse_directory_for_dicom(dirname)
 
 all_files_list = list_all_files(dirname, {}, '');
-
-
-
 
 study_ID = [];  % create empty cell array
 study_description_name = {};
@@ -17,7 +14,6 @@ do_fields_table= [8 4144; 8 4158; 32 13; 32 14];
 dicomdict('set', 'dicom-dict_fastMR.txt');
 dictionary = dicomdict('get_current');
 
-%tic
 timing_n = floor(dirlen/5);
 
 h = waitbar(0,'Parsing the directory for DICOM files. Please wait...');
@@ -31,17 +27,13 @@ for i = 1:dirlen
     info1 = dicominfo_fastversion(all_files_list{i}, do_fields_table, dictionary);
     
     if ~isempty(info1) && isfield(info1, 'StudyInstanceUID') 
-        %warndlg('No dicom files found');
-    %else
-        %find_location = strcmp(study_ID, info1.StudyID);  % "find(study_ID == info1.StudyID)" is unavailable because info1.StudyID is a string
+  
         find_location = strcmp(study_ID, info1.StudyInstanceUID);  % "find(study_ID == info1.StudyID)" is unavailable because info1.StudyID is a string
         if ~isfield(info1, 'SeriesDescription') % to handle the anonymized images
             info1.SeriesDescription = '';
         end
         
         if sum(find_location) == 0
-            % new ID for the ID List
-            %study_ID{end+1} = info1.StudyID;
             study_ID{end+1} = info1.StudyInstanceUID;
             find_location = length(study_ID);
             study_description_name{find_location}.description{1} = info1.SeriesInstanceUID;            

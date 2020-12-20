@@ -25,8 +25,6 @@ end
 completename = fullfile(prev_path, itempath);
 
 if isdir(completename)
-    %dir_content = fullfile(itempath, dir_return, '');
-    %dir_complete = fullfile(path, itempath);
     dir_content = dir(completename);
     content = current_list;
     for idx = 1:length(dir_content)
@@ -39,8 +37,6 @@ if isdir(completename)
     
     return;
 else
-    % file
-    %completename = fullfile(prev_path, itempath);
     filename = [current_list; completename];
     return;
 end
