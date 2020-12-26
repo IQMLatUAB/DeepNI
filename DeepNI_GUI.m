@@ -22,7 +22,7 @@ function varargout = DeepNI_GUI(varargin)
 
 % Edit the above text to modify the response to help DeepNI_GUI
 
-% Last Modified by GUIDE v2.5 15-Dec-2020 12:48:19
+% Last Modified by GUIDE v2.5 23-Dec-2020 14:15:16
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -46,19 +46,32 @@ end
 
 % --- Executes just before DeepNI_GUI is made visible.
 function DeepNI_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
-websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
-handles.inputarg = load('softlist.mat').softlist(2, :);
-handles.default_arg = load('softlist.mat').softlist(3,:);
+try
+    websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
+catch ME
+    if strcmp(ME.message,'Could not access server. https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh.')
+        %warndlg('Fail to download softlist. Please check Internet connection and restart DeepNI.', '!! Warning !!');
+        handles.output = 0;
+        return;
+    end
+end
+addpath utils
+handles.inputarg = load('softlist.mat').softlist(2, 2:end);
+handles.default_arg = load('softlist.mat').softlist(3, 2:end);
 handles.currsoft = 1; % defult current soft in soft list, 1 means fastserver
-set(handles.software_list,'string',load('softlist.mat').softlist(1, :));
+set(handles.software_list,'string',load('softlist.mat').softlist(1, 2:end));
 set(handles.input_arg_edit,'string',handles.default_arg(handles.currsoft));
-handles.result_content = cell(1, 9);
 handles.job_content = cell(1,13);
 handles.pre_proctacont = cell(1, 9);
 set(handles.pre_process_table, 'Unit','characters','Data',handles.pre_proctacont);
 set(handles.job_table, 'Unit','characters','Data',handles.job_content(1:10));
+handles.non_compl = [];
 guidata(hObject, handles);
 uiwait(handles.figure1);
+
+
+
+
 
 
 
@@ -66,6 +79,15 @@ uiwait(handles.figure1);
 function varargout = DeepNI_GUI_OutputFcn(hObject, eventdata, handles) 
 jobmgr.empty_cache(@jobmgr.example.solver); %empty previous processing result
 delete(append(pwd,'\nii_dir\*.nii'));
+
+try
+    websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
+catch ME
+    if strcmp(ME.message,'Could not access server. https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh.')
+        warndlg('Fail to download softlist. Please check Internet connection and restart DeepNI.', '!! Warning !!');
+        return;
+    end
+end
 % Get default command line output from handles structure
 
 
@@ -96,18 +118,24 @@ currsof = sofstr{sofidx}; % the name of software user choose
 for idx = 1: size(value,1)
     if cell2mat(value(idx,1)) == 1
         get_content = value(idx,3:9);
-        file = value{idx,10};
+        file = handles.pre_proctacont{idx,10};
     end
 end
 if sum(cell2mat(value(:,1))) == 0
-    warndlg('None of the studies were selected. Select at least one study.', '!! Warning !!');
+    warndlg('None of the images were selected. Select at least one.', '!! Warning !!');
     return;
     
 elseif sum(cell2mat(value(:,1))) >1
-    warndlg('More than one study was selected. Select only one study.', '!! Warning !!');
+    warndlg('More than one image was selected. Select only one image.', '!! Warning !!');
     return;
 end
-bar = waitbar(0,'Submitted job to server....');
+d = get(handles.job_table,'Data'); %limit submitted job number 
+[num,~]=size(d);
+if num>10
+    warndlg('The maximum number of submitted jobs is 10.', '!! Warning !!');
+    return;
+end
+bar = waitbar(0,'Submitting a job to server....');
 config = struct();
 config.solver = @jobmgr.example.solver;
 clientdata = config;
@@ -124,8 +152,17 @@ configs = {clientdata};
 run_opts = struct();
 run_opts.execution_method = 'job_server';
 run_opts.run_names = {'clientdata'};
-waitbar(0.6);
-r = jobmgr.run(configs, run_opts);
+waitbar(0.7);
+try
+    r = jobmgr.run(configs, run_opts);
+catch ME
+    if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
+        warndlg('The server did not respond in time.Please check the server address and Internet connection.', '!! Warning !!');
+        close(bar);
+    end
+    return;
+end
+    
 waitbar(1);
 close(bar);
 
@@ -147,12 +184,6 @@ end
 guidata(hObject,handles);
     
 
-
-% --- Executes on button press in run_locally_button.
-function run_locally_button_Callback(hObject, eventdata, handles)
-% hObject    handle to run_locally_button (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 
 function input_arg_edit_Callback(hObject, eventdata, handles)
@@ -236,16 +267,12 @@ end
      handles.pre_proctacont(end+1, :) = temp;
  end
      
- set(handles.pre_process_table, 'Unit','characters','Data',handles.pre_proctacont);
+ set(handles.pre_process_table, 'Unit','characters','Data',handles.pre_proctacont(:,1:9));
 else
 end
  guidata(hObject,handles);
 
     
-
-
-
-
 
 % --- Executes on button press in Server_setting.
 function Server_setting_Callback(hObject, eventdata, handles)
@@ -259,59 +286,79 @@ return;
 
 % --- Executes when entered data in editable cell(s) in job_table.
 function job_table_CellEditCallback(hObject, eventdata, handles)
-% hObject    handle to job_table (see GCBO)
-% eventdata  structure with the following fields (see MATLAB.UI.CONTROL.TABLE)
-%	Indices: row and column indices of the cell(s) edited
-%	PreviousData: previous data for the cell(s) edited
-%	EditData: string(s) entered by the user
-%	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
-%	Error: error string when failed to convert EditData to appropriate value for Data
-% handles    structure with handles and user data (see GUIDATA)
 idx = eventdata.Indices;
 table_info = get(handles.job_table,'Data');
-job_selected = handles.job_content(idx(1), :); 
+job_selected = handles.job_content(idx(1), :);
 act = table_info{idx(1),1};
 if table_info{idx(1),4}
     switch act
-        case 'Check_job'
-            bar = waitbar(0,'Check this job in server....');
-            config = struct();
-            config.solver = @jobmgr.example.solver;
-            clientdata = config;
-            checkfile = job_selected{1,13};
-            sof = job_selected{1,11};
-            processing_info = strsplit(job_selected{3});
-            argument = processing_info{2};
-            
-            readyfile = fullfile('nii_dir/',[checkfile '.nii']);
-            waitbar(0.5);
-            fileID = fopen(readyfile, 'r');
-            clientdata.input = fread(fileID,'*bit8'); %% read the file
-            fclose(fileID);
-            waitbar(0.7);
-            clientdata.argument = set_up_argument(handles.inputarg{1, sof}, argument, sof);
-            clientdata.softnum = sof;
-            configs = {clientdata};
-            run_opts = struct();
-            run_opts.execution_method = 'job_server';
-            run_opts.run_names = {'clientdata'};
-            r = jobmgr.run(configs, run_opts);
-            waitbar(1);
-            close(bar);
-            if ~isempty(r{1})
-                handles.job_content{idx(1), 2} = 'Completed';
-                job_show = handles.job_content(:,1:10);
-                set(handles.job_table, 'Unit','characters','Data',job_show);
-            else
-                job_msg = jobmgr.server.control('check_job',jobmgr.struct_hash(clientdata));
-                waitfor(msgbox(job_msg));
+        case 'Check job'
+            if strcmp(handles.job_content(idx(1),2), 'Submitted')
+                [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(idx(1), 12)));
+                if ~isempty(job_result)
+                    jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(idx(1), 12)), job_result); %store the result in cache
+                 
+                    handles.job_content{idx(1), 2} = 'Completed';
+                    handles.job_content{idx(1),1} = 'Action';
+                    job_show = handles.job_content(:,1:10);
+                    set(handles.job_table, 'Unit','characters','Data',job_show);
+                    fprintf('check_job!');
+                    guidata(hObject, handles);
+                else
+                    waitfor(msgbox(job_msg));
+                    handles.job_content{idx(1),1} = 'Action';
+                    job_show = handles.job_content(:,1:10);
+                    set(handles.job_table, 'Unit','characters','Data',job_show);
+                end
             end
-            handles.job_content{idx(1),1} = 'Action';
-            job_show = handles.job_content(:,1:10);
-            set(handles.job_table, 'Unit','characters','Data',job_show);
-        case 'Cancel_job'
+%             bar = waitbar(0,'Check this job in server....');
+%             config = struct();
+%             config.solver = @jobmgr.example.solver;
+%             clientdata = config;
+%             checkfile = job_selected{1,13};
+%             sof = job_selected{1,11};
+%             processing_info = strsplit(job_selected{3});
+%             argument = processing_info{2};
+%             
+%             readyfile = fullfile('nii_dir/',[checkfile '.nii']);
+%             waitbar(0.5);
+%             fileID = fopen(readyfile, 'r');
+%             clientdata.input = fread(fileID,'*bit8'); %% read the file
+%             fclose(fileID);
+%             waitbar(0.7);
+%             clientdata.argument = set_up_argument(handles.inputarg{1, sof}, argument, sof);
+%             clientdata.softnum = sof;
+%             configs = {clientdata};
+%             run_opts = struct();
+%             run_opts.execution_method = 'job_server';
+%             run_opts.run_names = {'clientdata'};
+%             try
+%                 r = jobmgr.run(configs, run_opts);
+%             catch ME
+%                 if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
+%                     warndlg('The server did not respond in time.Please check the server address and submit again.', '!! Warning !!');
+%                     handles.job_content{idx(1),1} = 'Action';
+%                     job_show = handles.job_content(:,1:10);
+%                     set(handles.job_table, 'Unit','characters','Data',job_show);
+%                 end
+%                 return;
+%             end
+%             waitbar(1);
+%             close(bar);
+%             if ~isempty(r{1})
+%                 handles.job_content{idx(1), 2} = 'Completed';
+%                 job_show = handles.job_content(:,1:10);
+%                 set(handles.job_table, 'Unit','characters','Data',job_show);
+%             else
+%                 [job_msg, result] = jobmgr.server.control('check_job',jobmgr.struct_hash(clientdata));
+%                 waitfor(msgbox(job_msg));
+%             end
+%             handles.job_content{idx(1),1} = 'Action';
+%             job_show = handles.job_content(:,1:10);
+%             set(handles.job_table, 'Unit','characters','Data',job_show);
+        case 'Cancel job'
             hash = handles.job_content{idx(1), 12};
-            response_msg = jobmgr.server.control('cancel_job',hash);
+            [response_msg, ~] = jobmgr.server.control('cancel_job',hash);
             r = jobmgr.recall(@jobmgr.example.solver, hash);
             if isempty(r)                
                 if strcmp(response_msg,'OK')
@@ -331,8 +378,8 @@ if table_info{idx(1),4}
                 set(handles.job_table, 'Unit','characters','Data',job_show);
             end
             
-        case 'View_image'
-            if strcmp(handles.job_content(idx(1), 2), 'Completed');
+        case 'View results'
+            if ~strcmp(handles.job_content(idx(1), 2), 'Submitted')
                 hashkey = handles.job_content{idx(1), 12};
                 sof = handles.job_content{idx(1),11};
                 show_content = handles.job_content(idx(1), 3:13);
@@ -347,38 +394,56 @@ if table_info{idx(1),4}
                 set(handles.job_table, 'Unit','characters','Data',job_show);
 
             end
-        case 'Export_image'
-            if strcmp(handles.job_content(idx(1), 2), 'Completed') && (handles.job_content{idx(1), 11}==1 || handles.job_content{idx(1), 11}==2)
-               
-               [result,in_cache] = jobmgr.recall(@jobmgr.example.solver,handles.job_content{idx(1),12});
-               [file,path,indx] = uiputfile('outputfile');
-               if indx
-               bar = waitbar(0,'Exporting the file........');
-               waitbar(0.2);
-               fileID = fopen('Contour.mgz','w');%write contour file to pwd
-               fwrite(fileID, result{1},'*bit8');
-               fclose(fileID);
-               waitbar(0.6);
-               fileID = fopen('img_file.mgz','w');%write img file to pwd
-               fwrite(fileID, result{1},'*bit8');
-               fclose(fileID);
-               
-               dateinfo = datetime;
-               oldfile = append(pwd,'\Contour.mgz');
-               newfile = append(path,'Contour_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),num2str(minute(dateinfo)),'.mgz');
-               copyfile(oldfile,newfile);%copy file to user destination
-               oldfile = append(pwd,'\img_file.mgz');
-               newfile = append(path,'img_file_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),num2str(minute(dateinfo)),'.mgz');
-               copyfile(oldfile,newfile);%copy file to user destination
-               waitbar(1);
-               close(bar);
-               handles.job_content{idx(1),1} = 'Action';
-               job_show = handles.job_content(:,1:10);
-               set(handles.job_table, 'Unit','characters','Data',job_show);
-               end %if no choosen destination
-               handles.job_content{idx(1),1} = 'Action';
-               job_show = handles.job_content(:,1:10);
-               set(handles.job_table, 'Unit','characters','Data',job_show);
+        case 'Export results'
+            if ~strcmp(handles.job_content(idx(1), 2), 'Submitted') && (handles.job_content{idx(1), 11}==1 || handles.job_content{idx(1), 11}==2)
+                
+                [result,in_cache] = jobmgr.recall(@jobmgr.example.solver,handles.job_content{idx(1),12});
+                [file,path,indx] = uiputfile('outputfile');
+                if indx
+                    bar = waitbar(0,'Exporting the file........');
+                    waitbar(0.2);
+                    fileID = fopen('files\Contour.mgz','w');%write contour file to pwd
+                    fwrite(fileID, result{1},'*bit8');
+                    fclose(fileID);
+                    waitbar(0.6);
+                    fileID = fopen('files\img_file.mgz','w');%write img file to pwd
+                    fwrite(fileID, result{1},'*bit8');
+                    fclose(fileID);
+                    
+                    dateinfo = datetime;
+                    oldfile = append(pwd,'\files\Contour.mgz');
+                    newfile = append(path,'Contour_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),'_',num2str(minute(dateinfo)),'_',num2str(second(dateinfo)),'.mgz');
+                    copyfile(oldfile,newfile);%copy file to user destination
+                    oldfile = append(pwd,'\files\img_file.mgz');
+                    newfile = append(path,'img_file_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),'_',num2str(minute(dateinfo)),'_',num2str(second(dateinfo)),'.mgz');
+                    copyfile(oldfile,newfile);%copy file to user destination
+                    waitbar(1);
+                    close(bar);
+                    handles.job_content{idx(1),1} = 'Action';
+                    job_show = handles.job_content(:,1:10);
+                    set(handles.job_table, 'Unit','characters','Data',job_show);
+                end %if no choosen destination
+                handles.job_content{idx(1),2} = 'Exported';
+                handles.job_content{idx(1),1} = 'Action';
+                job_show = handles.job_content(:,1:10);
+                set(handles.job_table, 'Unit','characters','Data',job_show);
+            elseif ~strcmp(handles.job_content(idx(1), 2), 'Submitted') && (handles.job_content{idx(1), 11}==3)
+                [file,path,indx] = uiputfile('outputfile');
+                if indx
+                    bar = waitbar(0,'Exporting the file........');
+                    waitbar(0.2);
+                    dateinfo = datetime;
+                    oldfile = append(pwd,'\files\Inho_img.nii');
+                    newfile = append(path,'Inho_img_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),':',num2str(minute(dateinfo)),':',num2str(second(dateinfo)),'.nii');
+                    waitbar(0.7);
+                    copyfile(oldfile, newfile);
+                    waitbar(1);
+                    close(bar);
+                    handles.job_content(idx(1),2) = 'Exported';
+                    handles.job_content{idx(1),1} = 'Action';
+                    job_show = handles.job_content(:,1:10);
+                    set(handles.job_table, 'Unit','characters','Data',job_show);
+                end
             else
                waitfor(msgbox('There is no result for this job to export. Please choose "check job".'));
                handles.job_content{idx(1),1} = 'Action';
@@ -394,4 +459,65 @@ else
 end
 guidata(hObject, handles);
 
-    
+
+
+% --- Executes on button press in Updata_all_jobs.
+function Updata_all_jobs_Callback(hObject, eventdata, handles)
+handles.non_compl = [];
+bar = waitbar(0, 'Updating all jobs......');
+[idx,~] = size(handles.job_content);
+for i=1:idx %find all non-completed jobs
+    if ~strcmp(handles.job_content{i, 2}, 'Completed') && ~isempty(handles.job_content{i, 2})
+        handles.non_compl = [handles.non_compl, i];
+    end
+end
+if isempty(handles.non_compl)
+    guidata(hObject, handles);
+    waitbar(1);
+    close(bar);
+    return;
+end
+steps = length(handles.non_compl);
+for i = 1:length(handles.non_compl)
+    [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(i, 12)));
+    waitbar(i/steps);
+    if ~isempty(job_result)
+        jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(i, 12)), job_result); %store the result in cache
+        
+        handles.job_content{i, 2} = 'Completed';
+        job_show = handles.job_content(:,1:10);
+        set(handles.job_table, 'Unit','characters','Data',job_show);
+        fprintf('check_job!');
+        guidata(hObject, handles);
+    end
+end
+close(bar);
+guidata(hObject, handles);
+
+% --- Executes on button press in Clear_exported.
+function Clear_exported_Callback(hObject, eventdata, handles)
+
+[idx,~] = size(handles.job_content);
+to_del = [];
+if idx
+    for i = 1:idx
+        if strcmp(handles.job_content(i, 2), 'Exported')
+           to_del = [to_del, i]; 
+        end
+    end
+    for i = i:length(to_del)
+        handles.job_content(to_del(i)) = [];
+    end
+end
+guidata(hObject, handles);
+
+
+% --- Executes on button press in Cancel_all_jobs.
+function Cancel_all_jobs_Callback(hObject, eventdata, handles)
+% hObject    handle to Cancel_all_jobs (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+handles.job_content = cell(1,13);
+set(handles.job_table, 'Unit','characters','Data',handles.job_content(1:10));
+jobmgr.empty_cache(@jobmgr.example.solver); %empty previous processing result
+guidata(hObject, handles);

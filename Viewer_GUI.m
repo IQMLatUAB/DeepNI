@@ -53,7 +53,7 @@ function Viewer_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to Viewer_GUI (see VARARGIN)
 
 % Choose default command line output for Viewer_GUI
-
+addpath files
 addpath software_seg_table;
 handles.btndwn_fcn2        = @(hObject,eventdata)Viewer_GUI('axes2_ButtonDownFcn',hObject,eventdata,guidata(hObject));
 handles.btndwn_fcn3        = @(hObject,eventdata)Viewer_GUI('axes3_ButtonDownFcn',hObject,eventdata,guidata(hObject));
@@ -95,69 +95,86 @@ set(handles.img_content,'Units', 'characters', 'Data', show_info);
 r = jobmgr.recall(@jobmgr.example.solver, handles.hashkey); %get the cache file
     
 waitbar(0.6);
-contour = r{1};
-img_file = r{2};
-
-%fwrite mgz file from jobmgr
-fileID = fopen('img_file.mgz','w');
-fwrite(fileID,img_file,'*bit8');
-fclose(fileID);
-
-fileID = fopen('Contour.mgz','w');
-fwrite(fileID,contour,'*bit8');
-fclose(fileID);
-
-Primary_dir = pwd;
-ima = fullfile(Primary_dir,'img_file.mgz');
-contour = fullfile(Primary_dir,'Contour.mgz');
-waitbar(0.8);
-% read mask and image file from the mgz files
-[vol2, M2, mr_parms2, volsz] = load_mgz(ima);
-vol2 = flip(permute(vol2, [3 1 2]),1);
-[vol4, M4, mr_parms2, volsz] = load_mgz(contour);
-vol4 = flip(permute(vol4, [3 1 2]),1);
-handles.mask_all = vol4;
-handles.image_vol = vol2;
-vec1 = unique(vol4(:));
-
-if (handles.currsoft ==1)%Fastserver
-   load freesurfer_labels.mat num str;
-   vec1(find(vec1==0)) = [];
-   vec1 = sort(vec1);
-   handles.label_vec = vec1;
-   for idx = 1:length(vec1)
-       r_idx = find(num(:,1) == vec1(idx));
-       handles.table{idx, 1} = vec1(idx);
-       handles.table{idx, 2} = str{r_idx, 2};
-       handles.table{idx, 3} = length(find(vol4==vec1(idx)));
-       handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
-   end
-elseif(handles.currsoft ==2) %DARTS
-    load freesurfer_labels.mat num str;
-    load DARTS_labels.mat p;
-    vec2 = vec1;
-    vec1 = p; % If using DARTS...
-    vec1(find(vec1==0)) = [];
-    vec1 = sort(vec1);
-    handles.label_vec = vec1;
-    for idx = 1:length(vec1)
-        r_idx = find(num(:,1) == vec1(idx));
-        handles.table{idx, 1} = vec1(idx);
-        handles.table{idx, 2} = str{r_idx, 2};
-        % handles.table{idx, 3} = length(find(vol4==vec1(idx))); %Fastsrf
-        handles.table{idx, 3} = length(find(vol4==vec2(idx))); %DARTAS
-        handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+if handles.currsoft ==1 || handles.currsoft ==2
+    contour = r{1};
+    img_file = r{2};
+    
+    %fwrite mgz file from jobmgr
+    fileID = fopen('files/img_file.mgz','w');
+    fwrite(fileID,img_file,'*bit8');
+    fclose(fileID);
+    
+    fileID = fopen('files/Contour.mgz','w');
+    fwrite(fileID,contour,'*bit8');
+    fclose(fileID);
+    
+    Primary_dir = pwd;
+    ima = fullfile(Primary_dir,'files/img_file.mgz');
+    contour = fullfile(Primary_dir,'files/Contour.mgz');
+    waitbar(0.8);
+    % read mask and image file from the mgz files
+    [vol2, M2, mr_parms2, volsz] = load_mgz(ima);
+    vol2 = flip(permute(vol2, [3 1 2]),1);
+    [vol4, M4, mr_parms2, volsz] = load_mgz(contour);
+    vol4 = flip(permute(vol4, [3 1 2]),1);
+    handles.mask_all = vol4;
+    handles.image_vol = vol2;
+    vec1 = unique(vol4(:));
+    
+    if (handles.currsoft ==1)%Fastserver
+        load freesurfer_labels.mat num str;
+        vec1(find(vec1==0)) = [];
+        vec1 = sort(vec1);
+        handles.label_vec = vec1;
+        for idx = 1:length(vec1)
+            r_idx = find(num(:,1) == vec1(idx));
+            handles.table{idx, 1} = vec1(idx);
+            handles.table{idx, 2} = str{r_idx, 2};
+            handles.table{idx, 3} = length(find(vol4==vec1(idx)));
+            handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+        end
+    elseif(handles.currsoft ==2) %DARTS
+        load freesurfer_labels.mat num str;
+        load DARTS_labels.mat p;
+        vec2 = vec1;
+        vec1 = p; % If using DARTS...
+        vec1(find(vec1==0)) = [];
+        vec1 = sort(vec1);
+        handles.label_vec = vec1;
+        for idx = 1:length(vec1)
+            r_idx = find(num(:,1) == vec1(idx));
+            handles.table{idx, 1} = vec1(idx);
+            handles.table{idx, 2} = str{r_idx, 2};
+            % handles.table{idx, 3} = length(find(vol4==vec1(idx))); %Fastsrf
+            handles.table{idx, 3} = length(find(vol4==vec2(idx))); %DARTAS
+            handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+        end
     end
+    set(handles.Contourlist, 'String', handles.label_str);
+    handles.now_label = 0;
+    set(handles.Contourlist, 'Value', 1);
+    guidata(hObject, handles);
+    update_image_display(hObject,handles);
+elseif handles.currsoft ==3
+    Inho_img = r{1};
+    V = zeros(10,10,10);
+    niftiwrite(V, '/files/Inho_img.nii');
+    fileID = fopen('/files/Inho_img.nii','w');
+    fwrite(fileID, Inho_img,'*bit8');
+    handles.image_vol = double(niftiread('/files/Inho_img.nii'));
+    [x,y,z] = size(handles.image_vol);
+    handles.mask1 = zeros(x,y,z);
+    handles.now_label = 0;
+    handles.outcurrent_slice = round(size(handles.image_vol, 3)/2);
+    handles.outcurrent_i = round(size(handles.image_vol, 1)/2);
+    handles.outcurrent_j = round(size(handles.image_vol, 2)/2);
+    
+    
+    update_image_display(hObject, handles);
 end
     
-set(handles.Contourlist, 'String', handles.label_str);
-now_label_new = handles.label_vec(1);
-handles.now_label = 0;
-set(handles.Contourlist, 'Value', 1);
-guidata(hObject, handles);
-update_image_display(hObject,handles);
 
-%orifile = append(handles.content_show{2},'_',handles.content_show{7},'_', handles.content_show{8});
+
 orifile = handles.content_show{:,11};
 orifile = fullfile('nii_dir/',[orifile '.nii']);%show the original image before processing
 handles.ori_img = double(niftiread(orifile));
@@ -215,35 +232,40 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function update_image_display(hObject, handles)
-if (handles.currsoft ==1)
-    now_label_new = handles.label_vec(get(handles.Contourlist, 'Value'));
-elseif(handles.currsoft ==2)
-    now_label_new = get(handles.Contourlist, 'Value')-1;
-end
-
-
-if handles.now_label ~= now_label_new
-    handles.now_label = now_label_new;
-    handles.mask1 = handles.mask_all==now_label_new;
+function update_image_display(handles)
+if handles.currsoft ==1 || handles.currsoft ==2
+    if (handles.currsoft ==1)
+        now_label_new = handles.label_vec(get(handles.Contourlist, 'Value'));
+    elseif(handles.currsoft ==2)
+        now_label_new = get(handles.Contourlist, 'Value')-1;
+    end
+    
+    
+    if handles.now_label ~= now_label_new
+        handles.now_label = now_label_new;
+        handles.mask1 = handles.mask_all==now_label_new;
+    else
+        handles.mask1 = handles.mask_all==now_label_new;
+    end
+    
+    tempvec = squeeze(sum(sum(handles.mask1,1),2));
+    tempvec = find(tempvec>0);
+    handles.outcurrent_slice = tempvec(round(length(tempvec)/2));
+    guidata(handles.axes4, handles);
+    tempvec = squeeze(sum(sum(handles.mask1,1),3));
+    tempvec = find(tempvec>0);
+    handles.outcurrent_j = tempvec(round(length(tempvec)/2));
+    guidata(handles.axes4, handles);
+    tempvec = squeeze(sum(sum(handles.mask1,2),3));
+    tempvec = find(tempvec>0);
+    handles.outcurrent_i = tempvec(round(length(tempvec)/2));
+    guidata(handles.axes4, handles);
+    handles = refresh_allout(handles);
+    guidata(handles.axes4, handles);
 else
-    handles.mask1 = handles.mask_all==now_label_new;
+    handles = refresh_allout(handles);
 end
 
-tempvec = squeeze(sum(sum(handles.mask1,1),2));
-tempvec = find(tempvec>0);
-handles.outcurrent_slice = tempvec(round(length(tempvec)/2));
-guidata(handles.axes4, handles);
-tempvec = squeeze(sum(sum(handles.mask1,1),3));
-tempvec = find(tempvec>0);
-handles.outcurrent_j = tempvec(round(length(tempvec)/2));
-guidata(handles.axes4, handles);
-tempvec = squeeze(sum(sum(handles.mask1,2),3));
-tempvec = find(tempvec>0);
-handles.outcurrent_i = tempvec(round(length(tempvec)/2));
-guidata(handles.axes4, handles);
-handles = refresh_allout(handles);
-guidata(handles.axes4, handles);
 return;
 
 function handles = refresh_all(handles)
@@ -282,7 +304,11 @@ ima = handles.image_vol(:, :, handles.outcurrent_slice);
 map1 = colormap('gray');
 ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
-img_to_show = fuse_img(ima, mask); %overlap the contour and image
+if handles.currsoft ==1 || handles.currsoft ==2
+    img_to_show = fuse_img(ima, mask); %overlap the contour and image
+else
+    img_to_show = ima;
+end
 handles.Img4 = imagesc(img_to_show, 'Parent', handles.axes4);
 set(handles.Img4, 'ButtonDownFcn', handles.btndwn_fcn4);
 colormap gray;
@@ -293,7 +319,12 @@ ima = imrotate(squeeze(handles.image_vol(handles.outcurrent_i, :, :)), 270);
 map1 = colormap('gray');
 ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
-img_to_show = fuse_img(ima, mask);%overlap the contour and image
+if handles.currsoft ==1 || handles.currsoft ==2
+    img_to_show = fuse_img(ima, mask); %overlap the contour and image
+else
+    img_to_show = ima;
+end
+
 handles.Img5 = imagesc(img_to_show, 'Parent', handles.axes5);
 set(handles.Img5, 'ButtonDownFcn', handles.btndwn_fcn5);
 colormap gray;
@@ -304,14 +335,18 @@ ima = imrotate(squeeze(handles.image_vol(:, handles.outcurrent_j, :)), 270);
 map1 = colormap('gray');
 ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
-img_to_show = fuse_img(ima, mask);%overlap the contour and image
+if handles.currsoft ==1 || handles.currsoft ==2
+    img_to_show = fuse_img(ima, mask); %overlap the contour and image
+else
+    img_to_show = ima;
+end
 handles.Img6 = imagesc(img_to_show, 'Parent', handles.axes6);
 set(handles.Img6, 'ButtonDownFcn', handles.btndwn_fcn6);
 colormap gray;
 set(handles.axes6,'XTick', [], 'YTick', []);
 return;
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % --- Executes on mouse press over axes background.
 function axes1_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to axes1 (see GCBO)
@@ -333,7 +368,6 @@ function axes3_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 % --- Executes on mouse press over axes background.
-
 %coronal
 a = get(handles.axes3,'currentpoint');
 handles.current_slice = size(handles.ori_img, 3) - round(a(1,2))+1;
@@ -421,19 +455,6 @@ guidata(hObject,handles);
 %        contents{get(hObject,'Value')} returns selected item from software_list
 
 
-% --- Executes during object creation, after setting all properties.
-function software_list_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to software_list (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: listbox controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on slider movement.
 function result_contrastslider_Callback(hObject, eventdata, handles)
 % hObject    handle to result_contrastslider (see GCBO)
@@ -457,32 +478,6 @@ function result_contrastslider_CreateFcn(hObject, eventdata, handles)
 % Hint: slider controls usually have a light gray background.
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
-
-
-function inputargument_edit_Callback(hObject, eventdata, handles)
-% hObject    handle to inputargument_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-now_soft = get(handles.software_list, 'value');
-argu = get(handles.inputargument_edit, 'string');
-handles.inputarg{2, now_soft} = argu;
-guidata(hObject, handles);
-% Hints: get(hObject,'String') returns contents of inputargument_edit as text
-%        str2double(get(hObject,'String')) returns contents of inputargument_edit as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function inputargument_edit_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to inputargument_edit (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
 end
 
 

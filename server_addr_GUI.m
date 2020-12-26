@@ -59,7 +59,7 @@ set(handles.addr,'String',server{1});
 set(handles.port,'String',server{2});
 % Update handles structure
 guidata(hObject, handles);
-uiwait(handles.figure1);
+
 
 % UIWAIT makes server_addr_GUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -73,8 +73,9 @@ function varargout = server_addr_GUI_OutputFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+handles.output = 0;
 varargout{1} = handles.output;
-delete(handles.figure1);
+%delete(handles.figure1);
 drawnow;
 
 
@@ -89,8 +90,8 @@ server{1} = addr;
 server{2} = port;
 save '+jobmgr/+netsrv/server' server;
 handles.output = {};
-uiresume;
 guidata(hObject, handles);
+delete(handles.figure1);
 return;
 
 
@@ -147,4 +148,4 @@ function Cancel_button_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles.output=[];
 guidata(hObject, handles);
-uiresume;
+delete(handles.figure1);

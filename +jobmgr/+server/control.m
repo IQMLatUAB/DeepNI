@@ -1,4 +1,4 @@
-function re_msg = control(msg, argument)
+function [re_msg, re_result] = control(msg, argument)
 
     valid_messages = {'accept_workers', 'quit_workers', 'quit_workers_when_idle', 'set_timeout','check_job','cancel_job'};
 
@@ -22,6 +22,7 @@ function re_msg = control(msg, argument)
         response = jobmgr.netsrv.make_request(request);
         fprintf('Response from server: %s\n', response.status);
         re_msg = response.status;
+        re_result = response.result;
     catch E
         if strcmp(E.identifier, 'MATLAB:client_communicate:need_init')
             fprintf('Job Manager: Assuming job server is running on localhost.\n');
