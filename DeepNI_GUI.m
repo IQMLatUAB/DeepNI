@@ -297,7 +297,7 @@ if table_info{idx(1),4}
                 [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(idx(1), 12)));
                 if ~isempty(job_result)
                     jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(idx(1), 12)), job_result); %store the result in cache
-                 
+                    
                     handles.job_content{idx(1), 2} = 'Completed';
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
@@ -306,7 +306,7 @@ if table_info{idx(1),4}
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
                     set(handles.job_table, 'Unit','characters','Data',job_show);
-
+                    
                     guidata(hObject, handles);
                 else
                     waitfor(msgbox(job_msg));
@@ -315,51 +315,10 @@ if table_info{idx(1),4}
                     set(handles.job_table, 'Unit','characters','Data',job_show);
                 end
             end
-%             bar = waitbar(0,'Check this job in server....');
-%             config = struct();
-%             config.solver = @jobmgr.example.solver;
-%             clientdata = config;
-%             checkfile = job_selected{1,13};
-%             sof = job_selected{1,11};
-%             processing_info = strsplit(job_selected{3});
-%             argument = processing_info{2};
-%             
-%             readyfile = fullfile('nii_dir/',[checkfile '.nii']);
-%             waitbar(0.5);
-%             fileID = fopen(readyfile, 'r');
-%             clientdata.input = fread(fileID,'*bit8'); %% read the file
-%             fclose(fileID);
-%             waitbar(0.7);
-%             clientdata.argument = set_up_argument(handles.inputarg{1, sof}, argument, sof);
-%             clientdata.softnum = sof;
-%             configs = {clientdata};
-%             run_opts = struct();
-%             run_opts.execution_method = 'job_server';
-%             run_opts.run_names = {'clientdata'};
-%             try
-%                 r = jobmgr.run(configs, run_opts);
-%             catch ME
-%                 if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
-%                     warndlg('The server did not respond in time.Please check the server address and submit again.', '!! Warning !!');
-%                     handles.job_content{idx(1),1} = 'Action';
-%                     job_show = handles.job_content(:,1:10);
-%                     set(handles.job_table, 'Unit','characters','Data',job_show);
-%                 end
-%                 return;
-%             end
-%             waitbar(1);
-%             close(bar);
-%             if ~isempty(r{1})
-%                 handles.job_content{idx(1), 2} = 'Completed';
-%                 job_show = handles.job_content(:,1:10);
-%                 set(handles.job_table, 'Unit','characters','Data',job_show);
-%             else
-%                 [job_msg, result] = jobmgr.server.control('check_job',jobmgr.struct_hash(clientdata));
-%                 waitfor(msgbox(job_msg));
-%             end
-%             handles.job_content{idx(1),1} = 'Action';
-%             job_show = handles.job_content(:,1:10);
-%             set(handles.job_table, 'Unit','characters','Data',job_show);
+            handles.job_content{idx(1),1} = 'Action';
+            job_show = handles.job_content(:,1:10);
+            set(handles.job_table, 'Unit','characters','Data',job_show);
+
         case 'Cancel job'
             hash = handles.job_content{idx(1), 12};
             [response_msg, ~] = jobmgr.server.control('cancel_job',hash);
