@@ -297,7 +297,7 @@ if table_info{idx(1),4}
                 [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(idx(1), 12)));
                 if ~isempty(job_result)
                     jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(idx(1), 12)), job_result); %store the result in cache
-                 
+                    
                     handles.job_content{idx(1), 2} = 'Completed';
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
@@ -306,7 +306,7 @@ if table_info{idx(1),4}
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
                     set(handles.job_table, 'Unit','characters','Data',job_show);
-
+                    
                     guidata(hObject, handles);
                 else
                     waitfor(msgbox(job_msg));
@@ -315,6 +315,10 @@ if table_info{idx(1),4}
                     set(handles.job_table, 'Unit','characters','Data',job_show);
                 end
             end
+            handles.job_content{idx(1),1} = 'Action';
+            job_show = handles.job_content(:,1:10);
+            set(handles.job_table, 'Unit','characters','Data',job_show);
+
 
         case 'Cancel job'
             hash = handles.job_content{idx(1), 12};
