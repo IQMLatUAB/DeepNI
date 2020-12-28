@@ -303,6 +303,10 @@ if table_info{idx(1),4}
                     job_show = handles.job_content(:,1:10);
                     set(handles.job_table, 'Unit','characters','Data',job_show);
                     fprintf('check_job!');
+                    handles.job_content{idx(1),1} = 'Action';
+                    job_show = handles.job_content(:,1:10);
+                    set(handles.job_table, 'Unit','characters','Data',job_show);
+
                     guidata(hObject, handles);
                 else
                     waitfor(msgbox(job_msg));

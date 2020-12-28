@@ -154,7 +154,7 @@ if handles.currsoft ==1 || handles.currsoft ==2
     handles.now_label = 0;
     set(handles.Contourlist, 'Value', 1);
     guidata(hObject, handles);
-    update_image_display(hObject,handles);
+    handles = update_image_display(hObject, handles);
 elseif handles.currsoft ==3
     Inho_img = r{1};
     V = zeros(10,10,10);
@@ -168,9 +168,8 @@ elseif handles.currsoft ==3
     handles.outcurrent_slice = round(size(handles.image_vol, 3)/2);
     handles.outcurrent_i = round(size(handles.image_vol, 1)/2);
     handles.outcurrent_j = round(size(handles.image_vol, 2)/2);
-    
-    
-    update_image_display(hObject, handles);
+
+    handles = update_image_display(hObject, handles);
 end
     
 
@@ -232,7 +231,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-function update_image_display(handles)
+function handles = update_image_display(hObject, handles)
 if handles.currsoft ==1 || handles.currsoft ==2
     if (handles.currsoft ==1)
         now_label_new = handles.label_vec(get(handles.Contourlist, 'Value'));
@@ -261,6 +260,7 @@ if handles.currsoft ==1 || handles.currsoft ==2
     handles.outcurrent_i = tempvec(round(length(tempvec)/2));
     guidata(handles.axes4, handles);
     handles = refresh_allout(handles);
+    guidata(hObject, handles);
     guidata(handles.axes4, handles);
 else
     handles = refresh_allout(handles);
