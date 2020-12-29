@@ -19,6 +19,8 @@ or try
 Launch matlab and run the `compile_for_windows.m` script in the `DeepNI/+jobmgr/+netsrv/private` directory.
 
 ## Instructions
+<img src="readme_img/DeepNI_figure.PNG" width = 700>
+
 
 1. Run DeepNI_GUI.m under the DeepNI folder in matlab.
 2. Click "Load images" button to import medical images you want to process.
