@@ -322,7 +322,15 @@ if table_info{idx(1),4}
 
         case 'Cancel job'
             hash = handles.job_content{idx(1), 12};
-            [response_msg, ~] = jobmgr.server.control('cancel_job',hash);
+            try
+                [response_msg, ~] = jobmgr.server.control('cancel_job',hash);
+            catch ME
+                if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
+                    warndlg('The server did not respond in time.Please check the server address and Internet connection.', '!! Warning !!');
+                    close(bar);
+                end
+                return;
+            end
             r = jobmgr.recall(@jobmgr.example.solver, hash);
             if isempty(r)                
                 if strcmp(response_msg,'OK')
@@ -443,8 +451,18 @@ if isempty(handles.non_compl)
 end
 steps = length(handles.non_compl);
 for i = 1:length(handles.non_compl)
-    [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(i, 12)));
     waitbar(i/steps);
+    try
+        [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(i, 12)));
+        
+    catch ME
+        if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
+            warndlg('The server did not respond in time.Please check the server address and Internet connection.', '!! Warning !!');
+            close(bar);
+        end
+        return;
+    end
+ 
     if ~isempty(job_result)
         jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(i, 12)), job_result); %store the result in cache
         
