@@ -46,6 +46,7 @@ end
 
 % --- Executes just before DeepNI_GUI is made visible.
 function DeepNI_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
+jobmgr.empty_cache(@jobmgr.example.solver); %empty previous processing result
 try
     websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
 catch ME
