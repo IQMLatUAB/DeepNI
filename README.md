@@ -7,7 +7,7 @@ DeepNI provides a remote computing server with GPUs for users to conduct medical
 Dowload DeepNI repository and unzip it.
 
 or try
-$git clone https://github.com/IQMLatUAB/DeepNI.git
+$ git clone https://github.com/IQMLatUAB/DeepNI.git
 ### Linux
     $ sudo apt-get install libzmq3-dev
     $ cd +jobmgr/+netsrv/private
