@@ -384,11 +384,13 @@ if table_info{idx(1),4}
                     fclose(fileID);
                     
                     dateinfo = datetime;
+                    sofinfo = strsplit(handles.job_content{idx(1) ,3});
+                    sofinfo = sofinfo{1};
                     oldfile = append(pwd,'\files\Contour.mgz');
-                    newfile = append(path,'Contour_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),'_',num2str(minute(dateinfo)),'_',num2str(second(dateinfo)),'.mgz');
+                    newfile = append(path,sofinfo,'Contour_',datestr(dateinfo,30),'.mgz');
                     copyfile(oldfile,newfile);%copy file to user destination
                     oldfile = append(pwd,'\files\img_file.mgz');
-                    newfile = append(path,'img_file_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),'_',num2str(minute(dateinfo)),'_',num2str(second(dateinfo)),'.mgz');
+                    newfile = append(path,sofinfo,'img_file_',datestr(dateinfo,30),'.mgz');
                     copyfile(oldfile,newfile);%copy file to user destination
                     waitbar(1);
                     close(bar);
