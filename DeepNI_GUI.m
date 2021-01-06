@@ -57,6 +57,18 @@ catch ME
     end
 end
 addpath utils
+if ~isfile('utils/dicominfo_fastversion.m')
+    version = ver;
+    version = version.Release;
+    if strcmp(version, '(R2020a)') || str2double(version(3:6))<=2020
+        str = which('dicominfo_fastversion_R2020a.m');
+        copyfile(str, append(str(1:end-9),'.m'));
+    else
+        str = which('dicominfo_fastversion_R2020b.m');
+        copyfile(str, append(str(1:end-9), '.m'));
+    end
+end
+
 handles.inputarg = load('softlist.mat').softlist(2, 2:end);
 handles.default_arg = load('softlist.mat').softlist(3, 2:end);
 handles.currsoft = 1; % defult current soft in soft list, 1 means fastserver
@@ -181,6 +193,8 @@ if isempty(r{1})
     end
     job_show = handles.job_content(:,1:10);
     set(handles.job_table, 'Unit','characters','Data',job_show);
+    [job_msg, job_result] = jobmgr.server.control('check_job',handles.job_content{:,12});
+    waitfor(msgbox(job_msg));
 end
 guidata(hObject,handles);
     
