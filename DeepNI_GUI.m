@@ -60,7 +60,7 @@ addpath utils
 if ~isfile('utils/dicominfo_fastversion.m')
     version = ver;
     version = version.Release;
-    if strcmp(version, '(R2020a)') || str2double(version(3:6))<=2020
+    if strcmp(version, '(R2020a)') || str2double(version(3:6))<2020
         str = which('dicominfo_fastversion_R2020a.m');
         copyfile(str, append(str(1:end-9),'.m'));
     else
@@ -193,7 +193,7 @@ if isempty(r{1})
     end
     job_show = handles.job_content(:,1:10);
     set(handles.job_table, 'Unit','characters','Data',job_show);
-    [job_msg, job_result] = jobmgr.server.control('check_job',handles.job_content{:,12});
+    [job_msg, job_result] = jobmgr.server.control('check_job',handles.job_content{end,12});
     waitfor(msgbox(job_msg));
 end
 guidata(hObject,handles);
@@ -246,7 +246,6 @@ if dicom_path
 addpath(dicom_path);
 temp = {};
 if isdicom(filename)%is dicom file
-    %[filelist fusion_filelist tempinfo] = parse_directory_for_dicom(Primary_dir_dicom);
     [filelist fusion_filelist tempinfo] = parse_directory_for_dicom(dicom_path);
     UID = dicominfo(filename).SOPInstanceUID;
     temp2  = dicm2nii_DeanMod(filelist,Primary_dir_nii,'nii',UID);
@@ -385,26 +384,27 @@ if table_info{idx(1),4}
             if ~strcmp(handles.job_content(idx(1), 2), 'Submitted') && (handles.job_content{idx(1), 11}==1 || handles.job_content{idx(1), 11}==2)
                 
                 [result,in_cache] = jobmgr.recall(@jobmgr.example.solver,handles.job_content{idx(1),12});
-                [file,path,indx] = uiputfile('outputfile');
-                if indx
+                %[file,path,indx] = uiputfile('outputfile');
+                path = uigetdir();
+                if path
                     bar = waitbar(0,'Exporting the file........');
                     waitbar(0.2);
-                    fileID = fopen('files\Contour.mgz','w');%write contour file to pwd
+                    fileID = fopen('files\contour.nii','w');%write contour file to pwd
                     fwrite(fileID, result{1},'*bit8');
                     fclose(fileID);
                     waitbar(0.6);
-                    fileID = fopen('files\img_file.mgz','w');%write img file to pwd
+                    fileID = fopen('files\orig.nii','w');%write img file to pwd
                     fwrite(fileID, result{1},'*bit8');
                     fclose(fileID);
                     
                     dateinfo = datetime;
                     sofinfo = strsplit(handles.job_content{idx(1) ,3});
                     sofinfo = sofinfo{1};
-                    oldfile = append(pwd,'\files\Contour.mgz');
-                    newfile = append(path,sofinfo,'Contour_',datestr(dateinfo,30),'.mgz');
+                    oldfile = append(pwd,'\files\contour.nii');
+                    newfile = append(path,sofinfo,'Contour_',datestr(dateinfo,30),'.nii');
                     copyfile(oldfile,newfile);%copy file to user destination
-                    oldfile = append(pwd,'\files\img_file.mgz');
-                    newfile = append(path,sofinfo,'img_file_',datestr(dateinfo,30),'.mgz');
+                    oldfile = append(pwd,'\files\orig.nii');
+                    newfile = append(path,sofinfo,'img_file_',datestr(dateinfo,30),'.nii');
                     copyfile(oldfile,newfile);%copy file to user destination
                     waitbar(1);
                     close(bar);
@@ -423,12 +423,12 @@ if table_info{idx(1),4}
                     waitbar(0.2);
                     dateinfo = datetime;
                     oldfile = append(pwd,'\files\Inho_img.nii');
-                    newfile = append(path,'Inho_img_',num2str(yyyymmdd(dateinfo)),'_',num2str(hour(dateinfo)),':',num2str(minute(dateinfo)),':',num2str(second(dateinfo)),'.nii');
+                    newfile = append(path,handles.job_content{idx(1),3},datestr(dateinfo,30),'.nii');
                     waitbar(0.7);
                     copyfile(oldfile, newfile);
                     waitbar(1);
                     close(bar);
-                    handles.job_content(idx(1),2) = 'Exported';
+                    handles.job_content{idx(1),2} = 'Exported';
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
                     set(handles.job_table, 'Unit','characters','Data',job_show);
@@ -470,7 +470,7 @@ steps = length(handles.non_compl);
 for i = 1:length(handles.non_compl)
     waitbar(i/steps);
     try
-        [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(i, 12)));
+        [job_msg, job_result] = jobmgr.server.control('check_job',cell2mat(handles.job_content(handles.non_compl(i), 12)));
         
     catch ME
         if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
@@ -481,9 +481,9 @@ for i = 1:length(handles.non_compl)
     end
  
     if ~isempty(job_result)
-        jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(i, 12)), job_result); %store the result in cache
+        jobmgr.store(@jobmgr.example.solver, cell2mat(handles.job_content(handles.non_compl(i), 12)), job_result); %store the result in cache
         
-        handles.job_content{i, 2} = 'Completed';
+        handles.job_content{handles.non_compl(i), 2} = 'Completed';
         job_show = handles.job_content(:,1:10);
         set(handles.job_table, 'Unit','characters','Data',job_show);
         fprintf('check_job!');

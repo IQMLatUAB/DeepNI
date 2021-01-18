@@ -100,23 +100,29 @@ if handles.currsoft ==1 || handles.currsoft ==2
     img_file = r{2};
     
     %fwrite mgz file from jobmgr
-    fileID = fopen('files/img_file.mgz','w');
-    fwrite(fileID,img_file,'*bit8');
-    fclose(fileID);
-    
-    fileID = fopen('files/Contour.mgz','w');
+    %fileID = fopen('files/img_file.mgz','w');
+    fileID = fopen('files/contour.nii','w');
     fwrite(fileID,contour,'*bit8');
     fclose(fileID);
     
+    %fileID = fopen('files/Contour.mgz','w');
+    fileID = fopen('files/orig.nii','w');
+    fwrite(fileID,img_file,'*bit8');
+    fclose(fileID);
+    
     Primary_dir = pwd;
-    ima = fullfile(Primary_dir,'files/img_file.mgz');
-    contour = fullfile(Primary_dir,'files/Contour.mgz');
+%     ima = fullfile(Primary_dir,'files/img_file.mgz');
+%     contour = fullfile(Primary_dir,'files/Contour.mgz');
+    ima = fullfile(Primary_dir,'files/orig.nii');
+    contour = fullfile(Primary_dir,'files/contour.nii');
     waitbar(0.8);
     % read mask and image file from the mgz files
-    [vol2, M2, mr_parms2, volsz] = load_mgz(ima);
-    vol2 = flip(permute(vol2, [3 1 2]),1);
-    [vol4, M4, mr_parms2, volsz] = load_mgz(contour);
-    vol4 = flip(permute(vol4, [3 1 2]),1);
+    %[vol2, M2, mr_parms2, volsz] = load_mgz(ima);
+    %vol2 = flip(permute(vol2, [3 1 2]),1);
+    vol2 = niftiread(ima);
+    %vol4, M4, mr_parms2, volsz] = load_mgz(contour);
+    %vol4 = flip(permute(vol4, [3 1 2]),1);
+    vol4 = niftiread(contour);
     handles.mask_all = vol4;
     handles.image_vol = vol2;
     vec1 = unique(vol4(:));
@@ -157,11 +163,12 @@ if handles.currsoft ==1 || handles.currsoft ==2
     handles = update_image_display(hObject, handles);
 elseif handles.currsoft ==3
     Inho_img = r{1};
-    V = zeros(10,10,10);
-    niftiwrite(V, '/files/Inho_img.nii');
-    fileID = fopen('/files/Inho_img.nii','w');
+%     V = zeros(10,10,10);
+%     niftiwrite(V, '/files/Inho_img.nii');
+    fileID = fopen('files/Inho_img.nii','w');
     fwrite(fileID, Inho_img,'*bit8');
-    handles.image_vol = double(niftiread('/files/Inho_img.nii'));
+    fclose(fileID);
+    handles.image_vol = double(niftiread('files/Inho_img.nii'));
     [x,y,z] = size(handles.image_vol);
     handles.mask1 = zeros(x,y,z);
     handles.now_label = 0;
@@ -299,14 +306,18 @@ return;
 
 function handles = refresh_allout(handles)
 contra = handles.result_img_contra;
-mask = handles.mask1(:, :, handles.outcurrent_slice);
-ima = handles.image_vol(:, :, handles.outcurrent_slice);
+mask = imrotate(handles.mask1(:, :, handles.outcurrent_slice),90);
+ima = imrotate(handles.image_vol(:, :, handles.outcurrent_slice),90);
 map1 = colormap('gray');
-ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
-ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
+%ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
+
 if handles.currsoft ==1 || handles.currsoft ==2
+    ima = ind2rgb(gray2ind(ima, 256), map1);
+    ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = fuse_img(ima, mask); %overlap the contour and image
 else
+    ima = gray2ind(ima/max(ima(:)), 256);
+    ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = ima;
 end
 handles.Img4 = imagesc(img_to_show, 'Parent', handles.axes4);
@@ -314,14 +325,17 @@ set(handles.Img4, 'ButtonDownFcn', handles.btndwn_fcn4);
 colormap gray;
 set(handles.axes4,'XTick', [], 'YTick', []);
 
-mask = imrotate(squeeze(handles.mask1(handles.outcurrent_i, :, :)), 270);
-ima = imrotate(squeeze(handles.image_vol(handles.outcurrent_i, :, :)), 270);
+mask = imrotate(squeeze(handles.mask1(handles.outcurrent_i, :, :)), 90);
+ima = imrotate(squeeze(handles.image_vol(handles.outcurrent_i, :, :)), 90);
 map1 = colormap('gray');
-ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
-ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
+%ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 if handles.currsoft ==1 || handles.currsoft ==2
+    ima = ind2rgb(gray2ind(ima, 256), map1);
+    ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = fuse_img(ima, mask); %overlap the contour and image
 else
+    ima = gray2ind(ima/max(ima(:)), 256);
+    ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = ima;
 end
 
@@ -330,14 +344,18 @@ set(handles.Img5, 'ButtonDownFcn', handles.btndwn_fcn5);
 colormap gray;
 set(handles.axes5,'XTick', [], 'YTick', []);
 
-mask = imrotate(squeeze(handles.mask1(:, handles.outcurrent_j, :)), 270);
-ima = imrotate(squeeze(handles.image_vol(:, handles.outcurrent_j, :)), 270);
+mask = imrotate(squeeze(handles.mask1(:, handles.outcurrent_j, :)), 90);
+ima = imrotate(squeeze(handles.image_vol(:, handles.outcurrent_j, :)), 90);
 map1 = colormap('gray');
-ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
-ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
+%ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
+
 if handles.currsoft ==1 || handles.currsoft ==2
+    ima = ind2rgb(gray2ind(ima, 256), map1);
+    ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = fuse_img(ima, mask); %overlap the contour and image
 else
+    ima = gray2ind(ima/max(ima(:)), 256);
+    ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = ima;
 end
 handles.Img6 = imagesc(img_to_show, 'Parent', handles.axes6);
@@ -345,6 +363,54 @@ set(handles.Img6, 'ButtonDownFcn', handles.btndwn_fcn6);
 colormap gray;
 set(handles.axes6,'XTick', [], 'YTick', []);
 return;
+% function handles = refresh_allout(handles)
+% contra = handles.result_img_contra;
+% mask = handles.mask1(:, :, handles.outcurrent_slice);
+% ima = handles.image_vol(:, :, handles.outcurrent_slice);
+% map1 = colormap('gray');
+% ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
+% ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
+% if handles.currsoft ==1 || handles.currsoft ==2
+%     img_to_show = fuse_img(ima, mask); %overlap the contour and image
+% else
+%     img_to_show = ima;
+% end
+% handles.Img4 = imagesc(img_to_show, 'Parent', handles.axes4);
+% set(handles.Img4, 'ButtonDownFcn', handles.btndwn_fcn4);
+% colormap gray;
+% set(handles.axes4,'XTick', [], 'YTick', []);
+% 
+% mask = imrotate(squeeze(handles.mask1(handles.outcurrent_i, :, :)), 270);
+% ima = imrotate(squeeze(handles.image_vol(handles.outcurrent_i, :, :)), 270);
+% map1 = colormap('gray');
+% ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
+% ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
+% if handles.currsoft ==1 || handles.currsoft ==2
+%     img_to_show = fuse_img(ima, mask); %overlap the contour and image
+% else
+%     img_to_show = ima;
+% end
+% 
+% handles.Img5 = imagesc(img_to_show, 'Parent', handles.axes5);
+% set(handles.Img5, 'ButtonDownFcn', handles.btndwn_fcn5);
+% colormap gray;
+% set(handles.axes5,'XTick', [], 'YTick', []);
+% 
+% mask = imrotate(squeeze(handles.mask1(:, handles.outcurrent_j, :)), 270);
+% ima = imrotate(squeeze(handles.image_vol(:, handles.outcurrent_j, :)), 270);
+% map1 = colormap('gray');
+% ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
+% ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
+% if handles.currsoft ==1 || handles.currsoft ==2
+%     img_to_show = fuse_img(ima, mask); %overlap the contour and image
+% else
+%     img_to_show = ima;
+% end
+% handles.Img6 = imagesc(img_to_show, 'Parent', handles.axes6);
+% set(handles.Img6, 'ButtonDownFcn', handles.btndwn_fcn6);
+% colormap gray;
+% set(handles.axes6,'XTick', [], 'YTick', []);
+% return;
 
 
 % --- Executes on mouse press over axes background.
@@ -398,9 +464,12 @@ function axes4_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %Axial
+% a = get(handles.axes4,'currentpoint');
+% handles.outcurrent_i = round(a(1,2));
+% handles.outcurrent_j = round(a(1,1));
 a = get(handles.axes4,'currentpoint');
-handles.outcurrent_i = round(a(1,2));
-handles.outcurrent_j = round(a(1,1));
+handles.outcurrent_i = round(a(1,1));
+handles.outcurrent_j = size(handles.image_vol, 2)-round(a(1,2))+1;
 handles = refresh_allout(handles);
 guidata(handles.axes4, handles);
 
@@ -410,10 +479,12 @@ function axes5_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %Sagittal
+% a = get(handles.axes5,'currentpoint');
+% handles.outcurrent_slice = round(a(1,2))+1;
+% handles.outcurrent_j = size(handles.image_vol, 3) - round(a(1,1));
 a = get(handles.axes5,'currentpoint');
-%handles.outcurrent_slice = size(handles.image_vol, 3) - round(a(1,2))+1;
-handles.outcurrent_slice = round(a(1,2))+1;
-handles.outcurrent_j = size(handles.image_vol, 3) - round(a(1,1));
+handles.outcurrent_slice = size(handles.image_vol, 3) - round(a(1,2))+1;
+handles.outcurrent_j = round(a(1,1));
 handles = refresh_allout(handles);
 guidata(handles.axes4, handles);
 
@@ -426,12 +497,12 @@ function axes6_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 %coronal
 a = get(handles.axes6,'currentpoint');
-%handles.outcurrent_slice = size(handles.image_vol, 3) - round(a(1,2))+1;
-handles.outcurrent_slice = round(a(1,2))+1;
-handles.outcurrent_i = size(handles.image_vol, 1) - round(a(1,1));
+% handles.outcurrent_slice = round(a(1,2))+1;
+% handles.outcurrent_i = size(handles.image_vol, 1) - round(a(1,1));
+handles.outcurrent_slice = size(handles.image_vol, 3) - round(a(1,2))+1;
+handles.outcurrent_i = round(a(1,1));
 handles = refresh_allout(handles);
 guidata(handles.axes4, handles);
-
 return;
 
 
