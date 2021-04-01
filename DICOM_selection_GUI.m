@@ -143,7 +143,7 @@ for i = 1:size(value1, 1)
         end
     end
 end
-if counter == 0;
+if counter == 0
     handles.output = [];
 else
     handles.output = handles.output(1:counter);% eliminate empty cell in the output
@@ -164,7 +164,7 @@ for i = 1:size(value1, 1)
         end
     end
 end
-if counter == 0;
+if counter == 0
     handles.fusion_filelist = [];
 else
     handles.fusion_filelist = handles.fusion_filelist(1:counter);

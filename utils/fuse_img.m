@@ -1,5 +1,8 @@
 function imgtemp = fuse_img(img1, img2)
 mask = edge(img2);
+p = bwpack(mask);% bold the contour
+mask_dilated = imdilate(p,ones(3,3),'ispacked');
+mask = bwunpack(mask_dilated, size(mask,1));
 mask(mask>0.5) = 1; 
 %map1 = colormap('gray');
 %imgtemp = ind2rgb(gray2ind(img1/max(img1(:)), 256), map1);    

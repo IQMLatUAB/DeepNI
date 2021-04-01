@@ -53,7 +53,6 @@ function Viewer_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to Viewer_GUI (see VARARGIN)
 
 % Choose default command line output for Viewer_GUI
-addpath files
 addpath software_seg_table;
 handles.btndwn_fcn2        = @(hObject,eventdata)Viewer_GUI('axes2_ButtonDownFcn',hObject,eventdata,guidata(hObject));
 handles.btndwn_fcn3        = @(hObject,eventdata)Viewer_GUI('axes3_ButtonDownFcn',hObject,eventdata,guidata(hObject));
@@ -93,36 +92,39 @@ handles.content_show = varargin{3};
 show_info = handles.content_show(1:8);
 set(handles.img_content,'Units', 'characters', 'Data', show_info);
 r = jobmgr.recall(@jobmgr.example.solver, handles.hashkey); %get the cache file
-    
+
+if ~isfolder('DeepNI_files')
+    mkdir('DeepNI_files','s');
+end
 waitbar(0.6);
 if handles.currsoft ==1 || handles.currsoft ==2
     contour = r{1};
-    img_file = r{2};
     
     %fwrite mgz file from jobmgr
     %fileID = fopen('files/img_file.mgz','w');
-    fileID = fopen('files/contour.nii','w');
+    fileID = fopen('DeepNI_files/contour.nii','w+');
     fwrite(fileID,contour,'*bit8');
     fclose(fileID);
     
-    %fileID = fopen('files/Contour.mgz','w');
-    fileID = fopen('files/orig.nii','w');
-    fwrite(fileID,img_file,'*bit8');
-    fclose(fileID);
-    
+    %     fileID = fopen('files/Contour.mgz','w');
+    %     fileID = fopen('DeepNI_files/orig.nii','w+');
+    %     fwrite(fileID,img_file,'*bit8');
+    %     fclose(fileID);
+    orifile = handles.content_show{:,11};
+    orifile = fullfile('DeepNI_nii_dir/',[orifile '.nii']);%show the original image before processing
     Primary_dir = pwd;
-%     ima = fullfile(Primary_dir,'files/img_file.mgz');
-%     contour = fullfile(Primary_dir,'files/Contour.mgz');
-    ima = fullfile(Primary_dir,'files/orig.nii');
-    contour = fullfile(Primary_dir,'files/contour.nii');
+
+    ima = orifile;
+    contour = fullfile(Primary_dir,'DeepNI_files/contour.nii');
     waitbar(0.8);
     % read mask and image file from the mgz files
     %[vol2, M2, mr_parms2, volsz] = load_mgz(ima);
     %vol2 = flip(permute(vol2, [3 1 2]),1);
-    vol2 = niftiread(ima);
+    vol2 = double(niftiread(ima));
     %vol4, M4, mr_parms2, volsz] = load_mgz(contour);
     %vol4 = flip(permute(vol4, [3 1 2]),1);
     vol4 = niftiread(contour);
+    vol4=flip(vol4,1);
     handles.mask_all = vol4;
     handles.image_vol = vol2;
     vec1 = unique(vol4(:));
@@ -134,10 +136,12 @@ if handles.currsoft ==1 || handles.currsoft ==2
         handles.label_vec = vec1;
         for idx = 1:length(vec1)
             r_idx = find(num(:,1) == vec1(idx));
-            handles.table{idx, 1} = vec1(idx);
-            handles.table{idx, 2} = str{r_idx, 2};
-            handles.table{idx, 3} = length(find(vol4==vec1(idx)));
-            handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+            if(r_idx)
+                handles.table{idx, 1} = vec1(idx);
+                handles.table{idx, 2} = str{r_idx, 2};
+                %             handles.table{idx, 3} = length(find(vol4==vec1(idx)));
+                handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+            end
         end
     elseif(handles.currsoft ==2) %DARTS
         load freesurfer_labels.mat num str;
@@ -149,13 +153,16 @@ if handles.currsoft ==1 || handles.currsoft ==2
         handles.label_vec = vec1;
         for idx = 1:length(vec1)
             r_idx = find(num(:,1) == vec1(idx));
-            handles.table{idx, 1} = vec1(idx);
-            handles.table{idx, 2} = str{r_idx, 2};
-            % handles.table{idx, 3} = length(find(vol4==vec1(idx))); %Fastsrf
-            handles.table{idx, 3} = length(find(vol4==vec2(idx))); %DARTAS
-            handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+            if(r_idx)
+                handles.table{idx, 1} = vec1(idx);
+                handles.table{idx, 2} = str{r_idx, 2};
+                % handles.table{idx, 3} = length(find(vol4==vec1(idx))); %Fastsrf
+                % handles.table{idx, 3} = length(find(vol4==vec2(idx))); %DARTAS
+                handles.label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
+            end
         end
     end
+    handles.table(all(cellfun('isempty', handles.table(:,1)),2),:) = [];
     set(handles.Contourlist, 'String', handles.label_str);
     handles.now_label = 0;
     set(handles.Contourlist, 'Value', 1);
@@ -165,10 +172,10 @@ elseif handles.currsoft ==3
     Inho_img = r{1};
 %     V = zeros(10,10,10);
 %     niftiwrite(V, '/files/Inho_img.nii');
-    fileID = fopen('files/Inho_img.nii','w');
+    fileID = fopen('DeepNI_files/Inho_img.nii','w+');
     fwrite(fileID, Inho_img,'*bit8');
     fclose(fileID);
-    handles.image_vol = double(niftiread('files/Inho_img.nii'));
+    handles.image_vol = double(niftiread('DeeNI_files/Inho_img.nii'));
     [x,y,z] = size(handles.image_vol);
     handles.mask1 = zeros(x,y,z);
     handles.now_label = 0;
@@ -181,8 +188,8 @@ end
     
 
 
-orifile = handles.content_show{:,11};
-orifile = fullfile('nii_dir/',[orifile '.nii']);%show the original image before processing
+% orifile = handles.content_show{:,11};
+% orifile = fullfile('DeepNI_nii_dir/',[orifile '.nii']);%show the original image before processing
 handles.ori_img = double(niftiread(orifile));
 handles.current_slice = round(size(handles.ori_img, 3)/2);
 handles.current_i = round(size(handles.ori_img, 1)/2);
@@ -312,7 +319,7 @@ map1 = colormap('gray');
 %ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 
 if handles.currsoft ==1 || handles.currsoft ==2
-    ima = ind2rgb(gray2ind(ima, 256), map1);
+    ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
     ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = fuse_img(ima, mask); %overlap the contour and image
 else
@@ -330,7 +337,7 @@ ima = imrotate(squeeze(handles.image_vol(handles.outcurrent_i, :, :)), 90);
 map1 = colormap('gray');
 %ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 if handles.currsoft ==1 || handles.currsoft ==2
-    ima = ind2rgb(gray2ind(ima, 256), map1);
+    ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
     ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = fuse_img(ima, mask); %overlap the contour and image
 else
@@ -350,7 +357,7 @@ map1 = colormap('gray');
 %ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
 
 if handles.currsoft ==1 || handles.currsoft ==2
-    ima = ind2rgb(gray2ind(ima, 256), map1);
+    ima = ind2rgb(gray2ind(ima/max(ima(:)), 256), map1);
     ima = imadjust(ima, [contra ; 1-contra]); %contract adjust
     img_to_show = fuse_img(ima, mask); %overlap the contour and image
 else

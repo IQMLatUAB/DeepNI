@@ -1,6 +1,6 @@
 function [re_msg, re_result] = control(msg, argument)
-
-    valid_messages = {'accept_workers', 'quit_workers', 'quit_workers_when_idle', 'set_timeout','check_job','cancel_job'};
+    load('jobmgr/netsrv/server');
+    valid_messages = {'accept_workers', 'quit_workers', 'quit_workers_when_idle', 'set_timeout','check_job','cancel_job','check_server_connection'};
 
     if nargin < 1 || ~any(strcmp(msg, valid_messages))
         error(sprintf(['Usage: jobmgr.server.control(message)\n'...
@@ -27,7 +27,7 @@ function [re_msg, re_result] = control(msg, argument)
         if strcmp(E.identifier, 'MATLAB:client_communicate:need_init')
             fprintf('Job Manager: Assuming job server is running on localhost.\n');
 
-            jobmgr.netsrv.start_client('localhost', jobmgr.server.tcp_port);
+            jobmgr.netsrv.start_client(server{1}, jobmgr.server.tcp_port);
             response = jobmgr.netsrv.make_request(request);
             fprintf('Response from server: %s\n', response.status);
         else

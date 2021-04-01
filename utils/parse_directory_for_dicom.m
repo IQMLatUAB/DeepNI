@@ -109,7 +109,8 @@ else
     end
 end
 
-varargout{1} = filelist;
+varargout{1} = filelist; %for DeepNI
+%varargout{1} = all_files_list; %for DeepBTSeg
 if exist('fusion_filelist')
     varargout{2} = fusion_filelist;
 else

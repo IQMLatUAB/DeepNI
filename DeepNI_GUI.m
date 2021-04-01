@@ -48,7 +48,7 @@ end
 function DeepNI_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 jobmgr.empty_cache(@jobmgr.example.solver); %empty previous processing result
 try
-    websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
+    websave('softlist.csv','https://drive.google.com/uc?export=download&id=11NXs-UhODyqJhI_MTmgJ8QTYb8d36GrW'); % load the default argument from google drive
 catch ME
     if strcmp(ME.message,'Could not access server. https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh.')
         %warndlg('Fail to download softlist. Please check Internet connection and restart DeepNI.', '!! Warning !!');
@@ -69,10 +69,14 @@ if ~isfile('utils/dicominfo_fastversion.m')
     end
 end
 
-handles.inputarg = load('softlist.mat').softlist(2, 2:end);
-handles.default_arg = load('softlist.mat').softlist(3, 2:end);
+softlist = readcell('softlist.csv');
+handles.inputarg = softlist(2, 2:end);
+handles.default_arg = softlist(3, 2:end);
+% handles.inputarg = load('softlist.mat').softlist(2, 2:end);
+% handles.default_arg = load('softlist.mat').softlist(3, 2:end);
+
 handles.currsoft = 1; % defult current soft in soft list, 1 means fastserver
-set(handles.software_list,'string',load('softlist.mat').softlist(1, 2:end));
+set(handles.software_list,'string',softlist(1, 2:end));
 set(handles.input_arg_edit,'string',handles.default_arg(handles.currsoft));
 handles.job_content = cell(1,13);
 handles.pre_proctacont = cell(1, 9);
@@ -91,16 +95,21 @@ uiwait(handles.figure1);
 % --- Outputs from this function are returned to the command line.
 function varargout = DeepNI_GUI_OutputFcn(hObject, eventdata, handles) 
 jobmgr.empty_cache(@jobmgr.example.solver); %empty previous processing result
-delete(append(pwd,'\nii_dir\*.nii'));
-
-try
-    websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
-catch ME
-    if strcmp(ME.message,'Could not access server. https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh.')
-        warndlg('Fail to download softlist. Please check Internet connection and restart DeepNI.', '!! Warning !!');
-        return;
-    end
+delete softlist.csv;
+if isfolder('DeepNI_nii_dir')
+    rmdir('DeepNI_nii_dir','s'); 
 end
+if isfolder('DeepNI_files')
+    rmdir('DeepNI_files','s');
+end
+% try
+%     websave('softlist.mat','https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh'); % load the default argument from google drive
+% catch ME
+%     if strcmp(ME.message,'Could not access server. https://drive.google.com/uc?export=download&id=18bJNG7Rh10Ru_nZ8tP3cZAEvfRiyvxkh.')
+%         warndlg('Fail to download softlist. Please check Internet connection and restart DeepNI.', '!! Warning !!');
+%         return;
+%     end
+% end
 % Get default command line output from handles structure
 
 
@@ -148,11 +157,22 @@ if num>10
     warndlg('The maximum number of submitted jobs is 10.', '!! Warning !!');
     return;
 end
+
+conbar = waitbar(0.5,'Check the Internet connection....');
+try
+    [job_msg, job_result] = jobmgr.server.control('check_server_connection');
+catch ME
+    if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
+        fprintf('Attemp to reconnect.....');
+    end
+end
+close(conbar);
+
 bar = waitbar(0,'Submitting a job to server....');
 config = struct();
 config.solver = @jobmgr.example.solver;
 clientdata = config;
-readyfile = fullfile('nii_dir/',[file '.nii']);
+readyfile = fullfile('DeepNI_nii_dir/',[file '.nii']);
 waitbar(0.25);
 fileID = fopen(readyfile, 'r');
 clientdata.input = fread(fileID,'*bit8'); %% read the file
@@ -186,6 +206,8 @@ if isempty(r{1})
     temp2{:,11} = sofidx;
     temp2{:,12} = jobmgr.struct_hash(clientdata); %find the key of this job in the hash map
     temp2{:,13} = file; %store nii filename;
+    
+    temp2{:,14} = handles.filelist;
     if isempty(handles.job_content{3})
         handles.job_content = temp2;
     else
@@ -194,7 +216,7 @@ if isempty(r{1})
     job_show = handles.job_content(:,1:10);
     set(handles.job_table, 'Unit','characters','Data',job_show);
     [job_msg, job_result] = jobmgr.server.control('check_job',handles.job_content{end,12});
-    waitfor(msgbox(job_msg));
+    msgbox(job_msg);
 end
 guidata(hObject,handles);
     
@@ -239,48 +261,49 @@ function Load_Image_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 addpath DICOM2Nifti;
-[filename, dicom_path] = uigetfile('*.*',pwd); % let user to choose particular dir 
-Primary_dir_nii = fullfile(pwd,'nii_dir');
+[filename, dicom_path] = uigetfile('*.*',pwd); % let user to choose particular dir
+Primary_dir_nii = fullfile(pwd,'DeepNI_nii_dir');
 
 if dicom_path
-addpath(dicom_path);
-temp = {};
-if isdicom(filename)%is dicom file
-    [filelist fusion_filelist tempinfo] = parse_directory_for_dicom(dicom_path);
-    UID = dicominfo(filename).SOPInstanceUID;
-    temp2  = dicm2nii_DeanMod(filelist,Primary_dir_nii,'nii',UID);
-    temp = {false};% prepare the table content to show on pre_process table 
-    temp2 = tempinfo(:, 2:8);
-    temp(:, 2) = {'.nii'};
-    temp(:, 3:9) = temp2;
-    temp{:,10} = UID;
-else
-    [~,filename,extention] = fileparts(filename);
-    if strcmp(extention,'.nii') %is nii file
-        copyfile(append(filename,extention), 'nii_dir');
-        temp = cell(1,9); 
-        temp{1} = false;
-        temp{2} = extention;
-        temp{3} = append(filename, extention);
-        temp{10} = filename;
-    elseif strcmp(extention,'.mgz') % is mgz file
-        temp = cell(1,9);
-        temp{1} = false;
-        temp{2} = extention;
-        temp{3} = append(filename, extention);
+    addpath(dicom_path);
+    temp = {};
+    if isdicom(filename)%is dicom file
+        [filelist fusion_filelist tempinfo] = parse_directory_for_dicom(dicom_path);
+        UID = dicominfo(filename).SOPInstanceUID;
+        handles.filelist = filelist;
+        temp2  = dicm2nii_DeanMod(filelist,Primary_dir_nii,'nii',UID);
+        temp = {false};% prepare the table content to show on pre_process table
+        temp2 = tempinfo(:, 2:8);
+        temp(:, 2) = {'.nii'};
+        temp(:, 3:9) = temp2;
+        temp{:,10} = UID;
+    else
+        [~,filename,extention] = fileparts(filename);
+        if strcmp(extention,'.nii') %is nii file
+            copyfile(append(dicom_path,filename,extention), 'DeepNI_nii_dir');
+            temp = cell(1,9);
+            temp{1} = false;
+            temp{2} = extention;
+            temp{3} = append(filename, extention);
+            temp{10} = filename;
+        elseif strcmp(extention,'.mgz') % is mgz file
+            temp = cell(1,9);
+            temp{1} = false;
+            temp{2} = extention;
+            temp{3} = append(filename, extention);
+        end
     end
-end
-if isempty(temp)
-    warndlg('Please select Dicom or nii file.', '!! Warning !!');
-    return;
-end
-
- if isempty(handles.pre_proctacont{1,3}) %show content to pre_process_table
-     handles.pre_proctacont = temp;
- else
-     handles.pre_proctacont(end+1, :) = temp;
- end
-     
+    if isempty(temp)
+        warndlg('Please select Dicom or nii file.', '!! Warning !!');
+        return;
+    end
+    
+    if isempty(handles.pre_proctacont{1,3}) %show content to pre_process_table
+        handles.pre_proctacont = temp;
+    else
+        handles.pre_proctacont(end+1, :) = temp;
+    end
+    
  set(handles.pre_process_table, 'Unit','characters','Data',handles.pre_proctacont(:,1:9));
 else
 end
@@ -304,6 +327,17 @@ idx = eventdata.Indices;
 table_info = get(handles.job_table,'Data');
 job_selected = handles.job_content(idx(1), :);
 act = table_info{idx(1),1};
+
+conbar = waitbar(0.5,'Check the Internet connection....');
+try
+    [job_msg, job_result] = jobmgr.server.control('check_server_connection');
+catch ME
+    if (strcmp(ME.identifier,'MATLAB:zmq_communicate:timeout'))
+        fprintf('Attemp to reconnect.....');
+    end
+end
+close(conbar);
+
 if table_info{idx(1),4}
     switch act
         case 'Check job'
@@ -385,54 +419,57 @@ if table_info{idx(1),4}
                 
                 [result,in_cache] = jobmgr.recall(@jobmgr.example.solver,handles.job_content{idx(1),12});
                 %[file,path,indx] = uiputfile('outputfile');
-                path = uigetdir();
+%                 path = uigetdir();
+                path = 1;
                 if path
-                    bar = waitbar(0,'Exporting the file........');
-                    waitbar(0.2);
-                    fileID = fopen('files\contour.nii','w');%write contour file to pwd
-                    fwrite(fileID, result{1},'*bit8');
-                    fclose(fileID);
-                    waitbar(0.6);
-                    fileID = fopen('files\orig.nii','w');%write img file to pwd
-                    fwrite(fileID, result{1},'*bit8');
-                    fclose(fileID);
-                    
-                    dateinfo = datetime;
-                    sofinfo = strsplit(handles.job_content{idx(1) ,3});
-                    sofinfo = sofinfo{1};
-                    oldfile = append(pwd,'\files\contour.nii');
-                    newfile = append(path,sofinfo,'Contour_',datestr(dateinfo,30),'.nii');
-                    copyfile(oldfile,newfile);%copy file to user destination
-                    oldfile = append(pwd,'\files\orig.nii');
-                    newfile = append(path,sofinfo,'img_file_',datestr(dateinfo,30),'.nii');
-                    copyfile(oldfile,newfile);%copy file to user destination
-                    waitbar(1);
-                    close(bar);
-                    handles.job_content{idx(1),1} = 'Action';
-                    job_show = handles.job_content(:,1:10);
-                    set(handles.job_table, 'Unit','characters','Data',job_show);
-                end %if no choosen destination
-                handles.job_content{idx(1),2} = 'Exported';
-                handles.job_content{idx(1),1} = 'Action';
-                job_show = handles.job_content(:,1:10);
-                set(handles.job_table, 'Unit','characters','Data',job_show);
-            elseif ~strcmp(handles.job_content(idx(1), 2), 'Submitted') && (handles.job_content{idx(1), 11}==3)
-                [file,path,indx] = uiputfile('outputfile');
-                if indx
-                    bar = waitbar(0,'Exporting the file........');
-                    waitbar(0.2);
-                    dateinfo = datetime;
-                    oldfile = append(pwd,'\files\Inho_img.nii');
-                    newfile = append(path,handles.job_content{idx(1),3},datestr(dateinfo,30),'.nii');
-                    waitbar(0.7);
-                    copyfile(oldfile, newfile);
-                    waitbar(1);
-                    close(bar);
-                    handles.job_content{idx(1),2} = 'Exported';
-                    handles.job_content{idx(1),1} = 'Action';
-                    job_show = handles.job_content(:,1:10);
-                    set(handles.job_table, 'Unit','characters','Data',job_show);
-                end
+                    DICOMRT_conversion_v01152021(handles.job_content{idx(1), 13}, handles.job_content{idx(1), 14}, handles.job_content{idx(1), 12}, handles.job_content{idx(1), 11});
+%                     bar = waitbar(0,'Exporting the file........');
+%                     waitbar(0.2);
+%                     fileID = fopen('DeepNI_files\contour.nii','w+');%write contour file to pwd
+%                     fwrite(fileID, result{1},'*bit8');
+%                     fclose(fileID);
+%                     waitbar(0.6);
+%                     fileID = fopen('DeepNI_files\orig.nii','w+');%write img file to pwd
+%                     fwrite(fileID, result{1},'*bit8');
+%                     fclose(fileID);
+%                     
+%                     dateinfo = datetime;
+%                     sofinfo = strsplit(handles.job_content{idx(1) ,3});
+%                     sofinfo = sofinfo{1};
+%                     oldfile = append(pwd,'\DeepNI_files\contour.nii');
+%                     newfile = append(path,'\',sofinfo,'Contour_',datestr(dateinfo,30),'.nii');
+%                     copyfile(oldfile,newfile);%copy file to user destination
+%                     oldfile = append(pwd,'\DeepNI_files\orig.nii');
+%                     newfile = append(path,'\',sofinfo,'img_file_',datestr(dateinfo,30),'.nii');
+%                     copyfile(oldfile,newfile);%copy file to user destination
+%                     waitbar(1);
+%                     close(bar);
+%                     handles.job_content{idx(1),1} = 'Action';
+%                     job_show = handles.job_content(:,1:10);
+%                     set(handles.job_table, 'Unit','characters','Data',job_show);
+%                 end %if no choosen destination
+%                 handles.job_content{idx(1),2} = 'Exported';
+%                 handles.job_content{idx(1),1} = 'Action';
+%                 job_show = handles.job_content(:,1:10);
+%                 set(handles.job_table, 'Unit','characters','Data',job_show);
+%             elseif ~strcmp(handles.job_content(idx(1), 2), 'Submitted') && (handles.job_content{idx(1), 11}==3)
+%                 [file,path,indx] = uiputfile('outputfile');
+%                 if indx
+%                     bar = waitbar(0,'Exporting the file........');
+%                     waitbar(0.2);
+%                     dateinfo = datetime;
+%                     oldfile = append(pwd,'\DeepNI_files\Inho_img.nii');
+%                     newfile = append(path,handles.job_content{idx(1),3},datestr(dateinfo,30),'.nii');
+%                     waitbar(0.7);
+%                     copyfile(oldfile, newfile);
+%                     waitbar(1);
+%                     close(bar);
+%                     handles.job_content{idx(1),2} = 'Exported';
+%                     handles.job_content{idx(1),1} = 'Action';
+%                     job_show = handles.job_content(:,1:10);
+%                     set(handles.job_table, 'Unit','characters','Data',job_show);
+               end
+               
             else
                waitfor(msgbox('There is no result for this job to export. Please choose "check job".'));
                handles.job_content{idx(1),1} = 'Action';
