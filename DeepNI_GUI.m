@@ -79,7 +79,7 @@ handles.currsoft = 1; % defult current soft in soft list, 1 means fastserver
 set(handles.software_list,'string',softlist(1, 2:end));
 set(handles.input_arg_edit,'string',handles.default_arg(handles.currsoft));
 handles.job_content = cell(1,13);
-handles.pre_proctacont = cell(1, 9);
+handles.pre_proctacont = cell(1, 11);
 set(handles.pre_process_table, 'Unit','characters','Data',handles.pre_proctacont);
 set(handles.job_table, 'Unit','characters','Data',handles.job_content(1:10));
 handles.non_compl = [];
@@ -141,6 +141,7 @@ for idx = 1: size(value,1)
     if cell2mat(value(idx,1)) == 1
         get_content = value(idx,3:9);
         file = handles.pre_proctacont{idx,10};
+        dicomfilelist =  handles.pre_proctacont{idx,11};
     end
 end
 if sum(cell2mat(value(:,1))) == 0
@@ -206,8 +207,9 @@ if isempty(r{1})
     temp2{:,11} = sofidx;
     temp2{:,12} = jobmgr.struct_hash(clientdata); %find the key of this job in the hash map
     temp2{:,13} = file; %store nii filename;
-    
-    temp2{:,14} = handles.filelist;
+    if ~isempty(dicomfilelist)
+        temp2{:,14} = dicomfilelist;
+    end
     if isempty(handles.job_content{3})
         handles.job_content = temp2;
     else
@@ -264,28 +266,34 @@ addpath DICOM2Nifti;
 [filename, dicom_path] = uigetfile('*.*',pwd); % let user to choose particular dir
 Primary_dir_nii = fullfile(pwd,'DeepNI_nii_dir');
 
+if ~isfolder('DeepNI_nii_dir')
+    mkdir('DeepNI_nii_dir','s'); 
+end
+
 if dicom_path
     addpath(dicom_path);
     temp = {};
     if isdicom(filename)%is dicom file
         [filelist fusion_filelist tempinfo] = parse_directory_for_dicom(dicom_path);
         UID = dicominfo(filename).SOPInstanceUID;
-        handles.filelist = filelist;
+%         handles.filelist = filelist;
         temp2  = dicm2nii_DeanMod(filelist,Primary_dir_nii,'nii',UID);
         temp = {false};% prepare the table content to show on pre_process table
         temp2 = tempinfo(:, 2:8);
         temp(:, 2) = {'.nii'};
         temp(:, 3:9) = temp2;
         temp{:,10} = UID;
+        temp{:,11} = filelist;
     else
         [~,filename,extention] = fileparts(filename);
         if strcmp(extention,'.nii') %is nii file
-            copyfile(append(dicom_path,filename,extention), 'DeepNI_nii_dir');
+            copyfile(append(dicom_path,filename,extention), Primary_dir_nii);
             temp = cell(1,9);
             temp{1} = false;
             temp{2} = extention;
             temp{3} = append(filename, extention);
             temp{10} = filename;
+            temp{:,11} = [];
         elseif strcmp(extention,'.mgz') % is mgz file
             temp = cell(1,9);
             temp{1} = false;
