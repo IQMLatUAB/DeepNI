@@ -70,11 +70,16 @@ if ~isfile('utils/dicominfo_fastversion.m')
 end
 
 softlist = readcell('softlist.csv');
+[r,c] = size(softlist);
+for i =1:r
+    for j = 1:c
+        if (ismissing(softlist{i,j})) %% replace the missing value with 0x0 double
+            softlist{i,j}=[];
+        end
+    end
+end
 handles.inputarg = softlist(2, 2:end);
 handles.default_arg = softlist(3, 2:end);
-% handles.inputarg = load('softlist.mat').softlist(2, 2:end);
-% handles.default_arg = load('softlist.mat').softlist(3, 2:end);
-
 handles.currsoft = 1; % defult current soft in soft list, 1 means fastserver
 set(handles.software_list,'string',softlist(1, 2:end));
 set(handles.input_arg_edit,'string',handles.default_arg(handles.currsoft));
@@ -416,21 +421,32 @@ if table_info{idx(1),4}
                 job_show = handles.job_content(:,1:10);
                 set(handles.job_table, 'Unit','characters','Data',job_show);
             else
-                waitfor(msgbox('There is no result for this job. Please choose "check job".'));
+                msgbox('There is no result for this job. Please choose "check job".');
                 handles.job_content{idx(1),1} = 'Action';
                 job_show = handles.job_content(:,1:10);
                 set(handles.job_table, 'Unit','characters','Data',job_show);
-
+                
             end
         case 'Export results'
             if ~strcmp(handles.job_content(idx(1), 2), 'Submitted') && (handles.job_content{idx(1), 11}==1 || handles.job_content{idx(1), 11}==2)
                 
-                [result,in_cache] = jobmgr.recall(@jobmgr.example.solver,handles.job_content{idx(1),12});
+                %                 [result,in_cache] = jobmgr.recall(@jobmgr.example.solver,handles.job_content{idx(1),12});
                 %[file,path,indx] = uiputfile('outputfile');
-%                 path = uigetdir();
+                %                 path = uigetdir();
                 path = 1;
                 if path
-                    DICOMRT_conversion_v01152021(handles.job_content{idx(1), 13}, handles.job_content{idx(1), 14}, handles.job_content{idx(1), 12}, handles.job_content{idx(1), 11});
+                    isexported = Export_file_GUI(handles.job_content{idx(1), 13}, handles.job_content{idx(1), 14}, handles.job_content{idx(1), 12}, handles.job_content{idx(1), 11});
+                    if isexported
+                        handles.job_content{idx(1),2} = 'Exported';
+                        handles.job_content{idx(1),1} = 'Action';
+                        job_show = handles.job_content(:,1:10);
+                        set(handles.job_table, 'Unit','characters','Data',job_show);
+                    else
+                        handles.job_content{idx(1),1} = 'Action';
+                        job_show = handles.job_content(:,1:10);
+                        set(handles.job_table, 'Unit','characters','Data',job_show);
+                    end
+%                     DICOMRT_conversion_v01152021(handles.job_content{idx(1), 13}, handles.job_content{idx(1), 14}, handles.job_content{idx(1), 12}, handles.job_content{idx(1), 11});
 %                     bar = waitbar(0,'Exporting the file........');
 %                     waitbar(0.2);
 %                     fileID = fopen('DeepNI_files\contour.nii','w+');%write contour file to pwd
@@ -479,7 +495,7 @@ if table_info{idx(1),4}
                end
                
             else
-               waitfor(msgbox('There is no result for this job to export. Please choose "check job".'));
+               msgbox('There is no result for this job to export. Please choose "check job".');
                handles.job_content{idx(1),1} = 'Action';
                job_show = handles.job_content(:,1:10);
                set(handles.job_table, 'Unit','characters','Data',job_show);
