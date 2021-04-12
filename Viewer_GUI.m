@@ -112,6 +112,7 @@ if handles.currsoft ==1 || handles.currsoft ==2
     %     fclose(fileID);
     orifile = handles.content_show{:,11};
     orifile = fullfile('DeepNI_nii_dir/',[orifile '.nii']);%show the original image before processing
+    handles.ori_img = double(niftiread(orifile)); %read original nii file
     Primary_dir = pwd;
 
     ima = orifile;
@@ -190,7 +191,7 @@ end
 
 % orifile = handles.content_show{:,11};
 % orifile = fullfile('DeepNI_nii_dir/',[orifile '.nii']);%show the original image before processing
-handles.ori_img = double(niftiread(orifile));
+% handles.ori_img = double(niftiread(orifile));
 handles.current_slice = round(size(handles.ori_img, 3)/2);
 handles.current_i = round(size(handles.ori_img, 1)/2);
 handles.current_j = round(size(handles.ori_img, 2)/2);
@@ -273,11 +274,13 @@ if handles.currsoft ==1 || handles.currsoft ==2
     tempvec = find(tempvec>0);
     handles.outcurrent_i = tempvec(round(length(tempvec)/2));
     guidata(handles.axes4, handles);
+    handles = refresh_all(handles); %update origianl image display and result image display simutaniously
     handles = refresh_allout(handles);
     guidata(hObject, handles);
     guidata(handles.axes4, handles);
 else
     handles = refresh_allout(handles);
+    handles = refresh_all(handles);
 end
 
 return;
@@ -286,7 +289,7 @@ function handles = refresh_all(handles)
 
 contra = handles.original_img_contra;
 %img_to_show = imrotate(handles.ori_img(:, :, handles.current_slice), 90);
-ima = imrotate(handles.ori_img(:, :, handles.current_slice),90);
+ima = imrotate(handles.ori_img(:, :, handles.outcurrent_slice),90);
 ima = gray2ind(ima/max(ima(:)), 256);
 img_to_show = imadjust(ima, [contra ; 1-contra],[]);%adjust contrast
 handles.Img1 = imagesc(img_to_show, 'Parent', handles.axes1);
@@ -294,7 +297,7 @@ set(handles.Img1, 'ButtonDownFcn', handles.btndwn_fcn1);
 colormap gray;
 set(handles.axes1,'XTick', [], 'YTick', []);
 
-ima = imrotate(squeeze(handles.ori_img(handles.current_i, :, :)), 90);
+ima = imrotate(squeeze(handles.ori_img(handles.outcurrent_i, :, :)), 90);
 ima = gray2ind(ima/max(ima(:)), 256);
 img_to_show = imadjust(ima, [contra ; 1-contra],[]);%adjust contrast
 handles.Img2 = imagesc(img_to_show, 'Parent', handles.axes2);
@@ -302,7 +305,7 @@ set(handles.Img2, 'ButtonDownFcn', handles.btndwn_fcn2);
 colormap gray;
 set(handles.axes2,'XTick', [], 'YTick', []);
 
-ima = imrotate(squeeze(handles.ori_img(:, handles.current_j, :)), 90);
+ima = imrotate(squeeze(handles.ori_img(:, handles.outcurrent_j, :)), 90);
 ima = gray2ind(ima/max(ima(:)), 256);
 img_to_show = imadjust(ima, [contra ; 1-contra],[]);%adjust contrast
 handles.Img3 = imagesc(img_to_show, 'Parent', handles.axes3);
@@ -427,9 +430,10 @@ function axes1_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 %Axial
 a = get(handles.axes1,'currentpoint');
-handles.current_i = round(a(1,1));
-handles.current_j = size(handles.ori_img, 2)-round(a(1,2))+1;
+handles.outcurrent_i = round(a(1,1));
+handles.outcurrent_j = size(handles.ori_img, 2)-round(a(1,2))+1;
 handles = refresh_all(handles);
+handles = refresh_allout(handles);
 guidata(handles.axes2, handles);
 
 return;
@@ -443,9 +447,10 @@ function axes3_ButtonDownFcn(hObject, eventdata, handles)
 % --- Executes on mouse press over axes background.
 %coronal
 a = get(handles.axes3,'currentpoint');
-handles.current_slice = size(handles.ori_img, 3) - round(a(1,2))+1;
-handles.current_i = round(a(1,1));
+handles.outcurrent_slice = size(handles.ori_img, 3) - round(a(1,2))+1;
+handles.outcurrent_i = round(a(1,1));
 handles = refresh_all(handles);
+handles = refresh_allout(handles);
 guidata(handles.axes2, handles);
 
 return;
@@ -456,9 +461,10 @@ function axes2_ButtonDownFcn(hObject, eventdata, handles)
 
 %Sagittal
 a = get(handles.axes2,'currentpoint');
-handles.current_slice = size(handles.ori_img, 3) - round(a(1,2))+1;
-handles.current_j = round(a(1,1));
+handles.outcurrent_slice = size(handles.ori_img, 3) - round(a(1,2))+1;
+handles.outcurrent_j = round(a(1,1));
 handles = refresh_all(handles);
+handles = refresh_allout(handles);
 guidata(handles.axes2, handles);
 
 return;
@@ -477,6 +483,7 @@ function axes4_ButtonDownFcn(hObject, eventdata, handles)
 a = get(handles.axes4,'currentpoint');
 handles.outcurrent_i = round(a(1,1));
 handles.outcurrent_j = size(handles.image_vol, 2)-round(a(1,2))+1;
+handles = refresh_all(handles);
 handles = refresh_allout(handles);
 guidata(handles.axes4, handles);
 
@@ -492,6 +499,7 @@ function axes5_ButtonDownFcn(hObject, eventdata, handles)
 a = get(handles.axes5,'currentpoint');
 handles.outcurrent_slice = size(handles.image_vol, 3) - round(a(1,2))+1;
 handles.outcurrent_j = round(a(1,1));
+handles = refresh_all(handles);
 handles = refresh_allout(handles);
 guidata(handles.axes4, handles);
 
@@ -508,6 +516,7 @@ a = get(handles.axes6,'currentpoint');
 % handles.outcurrent_i = size(handles.image_vol, 1) - round(a(1,1));
 handles.outcurrent_slice = size(handles.image_vol, 3) - round(a(1,2))+1;
 handles.outcurrent_i = round(a(1,1));
+handles = refresh_all(handles);
 handles = refresh_allout(handles);
 guidata(handles.axes4, handles);
 return;

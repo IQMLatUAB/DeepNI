@@ -224,6 +224,23 @@ if isempty(r{1})
     set(handles.job_table, 'Unit','characters','Data',job_show);
     [job_msg, job_result] = jobmgr.server.control('check_job',handles.job_content{end,12});
     msgbox(job_msg);
+else
+    temp2 = {'Action' 'Completed'};
+    temp2(3) = append(currsof,' ',argument);
+    temp2(:, 4:10) = get_content;
+    temp2{:,11} = sofidx;
+    temp2{:,12} = jobmgr.struct_hash(clientdata); %find the key of this job in the hash map
+    temp2{:,13} = file; %store nii filename;
+    if ~isempty(dicomfilelist)
+        temp2{:,14} = dicomfilelist;
+    end
+    if isempty(handles.job_content{3})
+        handles.job_content = temp2;
+    else
+        handles.job_content(end+1,:) = temp2;
+    end
+    job_show = handles.job_content(:,1:10);
+    set(handles.job_table, 'Unit','characters','Data',job_show);
 end
 guidata(hObject,handles);
     
@@ -402,10 +419,10 @@ if table_info{idx(1),4}
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
                     set(handles.job_table, 'Unit','characters','Data',job_show);
-                    waitfor(msgbox('This job has been canceled in server.'));
+                    msgbox('This job has been canceled in server.');
                 end
             else
-                waitfor(msgbox('Cannot cancel a job which is being processing in server.'));
+                msgbox('Cannot cancel a job which is being processing in server.');
                 handles.job_content{idx(1),1} = 'Action';
                 job_show = handles.job_content(:,1:10);
                 set(handles.job_table, 'Unit','characters','Data',job_show);
