@@ -214,6 +214,8 @@ if isempty(r{1})
     temp2{:,13} = file; %store nii filename;
     if ~isempty(dicomfilelist)
         temp2{:,14} = dicomfilelist;
+    else
+        temp2{:,14} = [];
     end
     if isempty(handles.job_content{3})
         handles.job_content = temp2;
@@ -410,11 +412,11 @@ if table_info{idx(1),4}
                 return;
             end
             r = jobmgr.recall(@jobmgr.example.solver, hash);
-            if isempty(r)                
+            if isempty(r)
                 if strcmp(response_msg,'OK')
                     handles.job_content(idx(1),:) = [];
                     if isempty(handles.job_content)
-                        handles.job_content = cell(1,13);
+                        handles.job_content = cell(1,14);
                     end
                     handles.job_content{idx(1),1} = 'Action';
                     job_show = handles.job_content(:,1:10);
@@ -422,10 +424,17 @@ if table_info{idx(1),4}
                     msgbox('This job has been canceled in server.');
                 end
             else
-                msgbox('Cannot cancel a job which is being processing in server.');
+                handles.job_content(idx(1), :) = [];
+                if isempty(handles.job_content)
+                    handles.job_content = cell(1,14);
+                end
                 handles.job_content{idx(1),1} = 'Action';
                 job_show = handles.job_content(:,1:10);
                 set(handles.job_table, 'Unit','characters','Data',job_show);
+                %                 msgbox('Cannot cancel a job which is being processing in server.');
+                %                 handles.job_content{idx(1),1} = 'Action';
+                %                 job_show = handles.job_content(:,1:10);
+                %                 set(handles.job_table, 'Unit','characters','Data',job_show);
             end
             
         case 'View results'

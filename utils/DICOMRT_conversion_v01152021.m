@@ -17,9 +17,11 @@ fclose(fileID);
 contour = fullfile(pwd,'DeepNI_files/contour.nii');
 vol4 = niftiread(contour);
 vec1 = unique(vol4(:));
-
+vol4 = flip(vol4, 1);
 vol4 = flip(permute(vol4,[2 1 3]),1); % now it is back to the original T1 orientation
+% vol4 = permute(vol4,[2 1 3]);
 vol4 = flip(vol4, 3);
+
 
 if (currsoft ==1)%Fastserver
     load freesurfer_labels.mat num str;
@@ -31,6 +33,7 @@ if (currsoft ==1)%Fastserver
         table{idx, 1} = vec1(idx);
         table{idx, 2} = str{r_idx, 2};
         table{idx, 3} = length(find(vol4==vec1(idx)));
+        table(idx, 4:6) = num2cell(num(r_idx, 3:5)); % find the label color
         label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
     end
 elseif currsoft==2
@@ -47,6 +50,7 @@ elseif currsoft==2
         table{idx, 2} = str{r_idx, 2};
         % handles.table{idx, 3} = length(find(vol4==vec1(idx))); %Fastsrf
         table{idx, 3} = length(find(vol4==vec2(idx))); %DARTAS
+        table{idx, 4:6} = num(r_idx, 3:5); %find the label color
         label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
     end
 end
@@ -95,20 +99,21 @@ file_info = filelist;
 load('dicomrt_template.mat');
 valid_dicom_list = {};
 for idx = 1:length(file_info)
+    waitbar((0.1/length(file_info)) * idx);
     if ~isdicom(file_info{idx})
         continue;
     end
     valid_dicom_list{end+1} = file_info{idx};
-%     temp1 = double(dicomread(file_info{idx}));
+    %     temp1 = double(dicomread(file_info{idx}));
     temp2 = dicominfo(file_info{idx});
     vec1(idx) = temp2.ImagePositionPatient(3);
-%     img_all_1(:,:,idx) = temp1;
+    %     img_all_1(:,:,idx) = temp1;
 end
 [sorted_x sorted_idx] = sort(vec1,'descend');
 file_info = valid_dicom_list(sorted_idx);
 
 for idx = 1:length(file_info)
-    
+    waitbar(0.1 + (0.1/length(file_info)) * idx);
     %temp1 = double(dicomread(file_info{idx}));
     
     temp2 = dicominfo(file_info{idx});
@@ -144,7 +149,7 @@ dicomrt_hdr.ReferencedFrameOfReferenceSequence.Item_1.RTReferencedStudySequence.
 dicomrt_hdr.ReferencedFrameOfReferenceSequence.Item_1.RTReferencedStudySequence.Item_1.RTReferencedSeriesSequence.Item_1.SeriesInstanceUID = ...
     target_img_hdr.SeriesInstanceUID;
 dicomrt_hdr.ReferencedFrameOfReferenceSequence.Item_1.RTReferencedStudySequence.Item_1.RTReferencedSeriesSequence.Item_1.ContourImageSequence.Item_1=rmfield(dicomrt_hdr.ReferencedFrameOfReferenceSequence.Item_1.RTReferencedStudySequence.Item_1.RTReferencedSeriesSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
-waitbar(0.4);
+% waitbar(0.4);
 %%
 %dicomrt_hdr.ROIContourSequence = rmfield(dicomrt_hdr.ROIContourSequence,'Item_2');
 %dicomrt_hdr.ROIContourSequence = rmfield(dicomrt_hdr.ROIContourSequence,'Item_3');
@@ -162,24 +167,33 @@ waitbar(0.4);
 for idx = 2:9
     dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence,['Item_' num2str(idx)]);
 end
- dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
-     rmfield(dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
-for i = 2:4
-    dicomrt_hdr.ROIContourSequence = rmfield(dicomrt_hdr.ROIContourSequence, append('Item_',num2str(i)));
+% dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
+%     rmfield(dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
+for idx = 2:8
+    dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence,['Item_' num2str(idx)]);
 end
-for idx = 1:length(table)
-    idx_target=table{idx, 1};
-    eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '=dicomrt_hdr.ROIContourSequence.Item_1;']);
-    eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ReferenceedROINumber = 5;']);
-    eval(['dicomrt_hdr.StructureSetROISeqence.Item_' num2str(idx_target) '=dicomrt_hdr.StructureSetROISequence.Item_1;']);
-    eval(['dicomrt_hdr.StructureSetROISequence.Item_' num2str(idx_target) '.ROINumber = 5;']);
+for idx = 2:7
+    dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence,['Item_' num2str(idx)]);
 end
-% for idx = 2:8
-%     dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence,['Item_' num2str(idx)]);
+
+for idx = 2:9
+    dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence,['Item_' num2str(idx)]);
+end
+% for i = 3:4
+%     dicomrt_hdr.ROIContourSequence = rmfield(dicomrt_hdr.ROIContourSequence, append('Item_',num2str(i)));
 % end
-% for idx = 2:7
-%     dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence,['Item_' num2str(idx)]);
-% end
+
+% dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence = rmfield(dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence, 'Item_2');
+for idx = 5:length(table)
+%     idx_target=table{idx, 1};
+    eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx) '=dicomrt_hdr.ROIContourSequence.Item_4;']);
+    eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx) '.ReferencedROINumber = ' num2str(idx) ';']);
+    eval(['dicomrt_hdr.StructureSetROISequence.Item_' num2str(idx) '=dicomrt_hdr.StructureSetROISequence.Item_4;']);
+    eval(['dicomrt_hdr.StructureSetROISequence.Item_' num2str(idx) '.ROINumber = ' num2str(idx) ';']);
+    eval(['dicomrt_hdr.RTROIObservationsSequence.Item_' num2str(idx) ' = dicomrt_hdr.RTROIObservationsSequence.Item_1;']);
+    eval(['dicomrt_hdr.RTROIObservationsSequence.Item_' num2str(idx) '.ObservationNumber = ' num2str(idx) ';']);
+    eval(['dicomrt_hdr.RTROIObservationsSequence.Item_' num2str(idx) '.ReferencedROINumber = ' num2str(idx) ';']);
+end
 % dicomrt_hdr.ROIContourSequence.Item_5 = dicomrt_hdr.ROIContourSequence.Item_4;
 % dicomrt_hdr.ROIContourSequence.Item_5.ReferencedROINumber = 5;
 % dicomrt_hdr.StructureSetROISequence.Item_5 = dicomrt_hdr.StructureSetROISequence.Item_4;
@@ -192,24 +206,24 @@ for idx = 2:299
     dicomrt_hdr.ReferencedFrameOfReferenceSequence.Item_1.RTReferencedStudySequence.Item_1.RTReferencedSeriesSequence.Item_1.ContourImageSequence = ...
         rmfield(dicomrt_hdr.ReferencedFrameOfReferenceSequence.Item_1.RTReferencedStudySequence.Item_1.RTReferencedSeriesSequence.Item_1.ContourImageSequence,['Item_' num2str(idx)]);
 end
-% dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
-%     rmfield(dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
-% dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
-%     rmfield(dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
-% dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
-%     rmfield(dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
-% 
-% dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
-%     rmfield(dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
-% dicomrt_hdr.ROIContourSequence.Item_5.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
-%     rmfield(dicomrt_hdr.ROIContourSequence.Item_5.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
+dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
+    rmfield(dicomrt_hdr.ROIContourSequence.Item_1.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
+dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
+    rmfield(dicomrt_hdr.ROIContourSequence.Item_2.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
+dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
+    rmfield(dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
+
+dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
+    rmfield(dicomrt_hdr.ROIContourSequence.Item_4.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
+dicomrt_hdr.ROIContourSequence.Item_5.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
+    rmfield(dicomrt_hdr.ROIContourSequence.Item_5.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
 % dicomrt_hdr.ROIContourSequence.Item_5.ContourSequence.Item_1.ContourImageSequence.Item_1 = ...
 %     rmfield(dicomrt_hdr.ROIContourSequence.Item_3.ContourSequence.Item_1.ContourImageSequence.Item_1,'ReferencedFrameNumber');
 
-waitbar(0.6);
+% waitbar(0.6);
 %%
-% dicomrt_hdr.ROIContourSequence.Item_1.ROIDisplayColor = [255 0 0]';
-% dicomrt_hdr.ROIContourSequence.Item_2.ROIDisplayColor = [255 0 255]';
+dicomrt_hdr.ROIContourSequence.Item_1.ROIDisplayColor = [255 128 0];
+% dicomrt_hdr.ROIContourSequence.Item_2.ROIDisplayColor = [255 0 255];
 % dicomrt_hdr.ROIContourSequence.Item_3.ROIDisplayColor = [255 128 255];
 % dicomrt_hdr.ROIContourSequence.Item_4.ROIDisplayColor = [255 255 0];
 % dicomrt_hdr.ROIContourSequence.Item_5.ROIDisplayColor = [0 0 255];
@@ -221,9 +235,10 @@ for idx_table = 1:length(table)
     mask1 = (vol4 == table{idx_table, 1});
     slices_to_do = find(sum(mipdim(mask1,1))>0);
     n_slices = length(slices_to_do);
-    
+    waitbar(0.2 + (0.6/length(table))* idx_table);
     now_item = 0;
-    eval('idx_table');
+    eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ROIDisplayColor = [' num2str(cell2mat(table(idx_table,4:6))) '];']);
+%     eval('idx_table');
     for idx1 = 1:n_slices
         now_slice = slices_to_do(idx1);
         tempmask4 = mask1(:,:,now_slice);
@@ -248,18 +263,17 @@ for idx_table = 1:length(table)
             end
             
             tempmat = pos_vertices';
-            eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ContourSequence.Item_' num2str(now_item) '.ContourData = tempmat(:);']);
-            eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ContourSequence.Item_' num2str(now_item) '.NumberOfContourPoints = length(r);']);
+            eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ContourSequence.Item_' num2str(now_item) '.ContourData = tempmat(:);']);
+            eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ContourSequence.Item_' num2str(now_item) '.NumberOfContourPoints = length(r);']);
             if now_item >1
-                eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ContourSequence.Item_' num2str(now_item) '.ContourGeometricType = dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ContourSequence.Item_1.ContourGeometricType;']);
-                eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ContourSequence.Item_' num2str(now_item) '.ContourImageSequence = dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_target) '.ContourSequence.Item_1.ContourImageSequence;']);
+                eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ContourSequence.Item_' num2str(now_item) '.ContourGeometricType = dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ContourSequence.Item_1.ContourGeometricType;']);
+                eval(['dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ContourSequence.Item_' num2str(now_item) '.ContourImageSequence = dicomrt_hdr.ROIContourSequence.Item_' num2str(idx_table) '.ContourSequence.Item_1.ContourImageSequence;']);
             end
         end
     end
-    eval(['dicomrt_hdr.StructureSetROISequence.Item_' num2str(idx_target) '.ROIName = ''' now_ROI_name ''';']);
+    eval(['dicomrt_hdr.StructureSetROISequence.Item_' num2str(idx_table) '.ROIName = ''' now_ROI_name ''';']);
 end
 waitbar(0.8);
-
 
 % %%
 % mask1 = flip(V_seg_results_ori_T1==1,3); % img_T1 has been flipped in the 3rd dimension
