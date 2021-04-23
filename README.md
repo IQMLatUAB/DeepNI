@@ -27,7 +27,7 @@ $ git clone https://github.com/IQMLatUAB/DeepNI.git
 After download is finished, Open MATLAB, change MATLAB current folder to the path that the user downloads this repo.
 ## DeepNI_GUI
 ![](images/GUI.PNG)
-- This is the User GUI of DeepBTSeg.
+- This is the User GUI of DeepNI.
 - Run `DeepNI_GUI.m` under the `DeepNI` folder in matlab.
 ## User_Instruction
 
