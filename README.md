@@ -15,7 +15,7 @@ DeepNI is **developed under Matlab 2020b**.
 ## Download
 
 There are two ways that can download DeepNI on the local PC :
-1. Dowload DeepBTSeg repository .zip file, then unzip it to the local PC.
+1. Dowload DeepNI repository .zip file, then unzip it to the local PC.
 
 ![](images/download.png)
 
