@@ -50,7 +50,7 @@ elseif currsoft==2
         table{idx, 2} = str{r_idx, 2};
         % handles.table{idx, 3} = length(find(vol4==vec1(idx))); %Fastsrf
         table{idx, 3} = length(find(vol4==vec2(idx))); %DARTAS
-        table{idx, 4:6} = num(r_idx, 3:5); %find the label color
+        table(idx, 4:6) = num2cell(num(r_idx, 3:5)); %find the label color
         label_str{idx} = [num2str(vec1(idx)) ':' str{r_idx, 2}];
     end
 end

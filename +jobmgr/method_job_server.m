@@ -1,6 +1,6 @@
 function r = method_job_server(run_opts, configs, config_hashes, run_names)
 % METHOD_JOB_SERVER Run using the job server
-    load('jobmgr/netsrv/server');
+    load('jobmgr/netsrv/server'); %load IP and port from mat file
     M = numel(configs);
     r = cell(M, 1);
 
@@ -21,7 +21,7 @@ function r = method_job_server(run_opts, configs, config_hashes, run_names)
             if strcmp(E.identifier, 'MATLAB:client_communicate:need_init')
                 fprintf('Job Manager: Assuming job server is running on localhost.\nIf this is incorrect, pass the server hostname to jobmgr.netsrv.start_client\n');
                 % add remote server
-                jobmgr.netsrv.start_client(server{1}, jobmgr.server.tcp_port);
+                jobmgr.netsrv.start_client(server{1}, jobmgr.server.tcp_port); % specify IP and port 
                 response = jobmgr.netsrv.make_request(request);
             else
                 rethrow(E);

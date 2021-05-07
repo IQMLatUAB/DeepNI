@@ -176,7 +176,7 @@ elseif handles.currsoft ==3
     fileID = fopen('DeepNI_files/Inho_img.nii','w+');
     fwrite(fileID, Inho_img,'*bit8');
     fclose(fileID);
-    handles.image_vol = double(niftiread('DeeNI_files/Inho_img.nii'));
+    handles.image_vol = double(niftiread('DeepNI_files/Inho_img.nii'));
     [x,y,z] = size(handles.image_vol);
     handles.mask1 = zeros(x,y,z);
     handles.now_label = 0;

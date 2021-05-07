@@ -78,6 +78,13 @@ for i =1:r
         end
     end
 end
+% load the IP address and port of server
+load('+jobmgr/+netsrv/server.mat');
+server{1,1} = softlist{1,1};
+server{1,2} = softlist{2,1};
+save('+jobmgr/+netsrv/server.mat','server');
+
+
 handles.inputarg = softlist(2, 2:end);
 handles.default_arg = softlist(3, 2:end);
 handles.currsoft = 1; % defult current soft in soft list, 1 means fastserver
@@ -185,8 +192,9 @@ clientdata.input = fread(fileID,'*bit8'); %% read the file
 fclose(fileID);
 
 argument = get(handles.input_arg_edit,'string');%prepareing info for jobmgr to run
-clientdata.argument = char(set_up_argument(handles.inputarg{1, sofidx}, argument, sofidx));
-clientdata.softnum = get(handles.software_list, 'Value');
+%clientdata.argument = char(set_up_argument(handles.inputarg{1, sofidx},
+%argument, sofidx)); not required for IQMLserver
+clientdata.softnum = get(handles.software_list, 'Value') +999;
 configs = {clientdata};
 run_opts = struct();
 run_opts.execution_method = 'job_server';
