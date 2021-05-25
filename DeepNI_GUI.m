@@ -195,6 +195,7 @@ argument = get(handles.input_arg_edit,'string');%prepareing info for jobmgr to r
 %clientdata.argument = char(set_up_argument(handles.inputarg{1, sofidx},
 %argument, sofidx)); not required for IQMLserver
 clientdata.softnum = get(handles.software_list, 'Value') +999;
+clientdata.date = datenum(datetime);
 configs = {clientdata};
 run_opts = struct();
 run_opts.execution_method = 'job_server';
